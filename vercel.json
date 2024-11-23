@@ -1,0 +1,14 @@
+{
+  "framework": "remix",
+  "buildCommand": "remix build",
+  "devCommand": "remix dev",
+  "installCommand": "npm install",
+  "outputDirectory": "public",
+  "regions": ["iad1"],
+  "functions": {
+    "api/*.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
+}
