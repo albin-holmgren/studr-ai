@@ -13,7 +13,8 @@ import { json } from "@remix-run/node"
 
 import { createSupabaseServerClient } from "~/lib/supabase.server"
 import { Toaster } from "~/components/ui/toaster"
-import "./tailwind.css"
+// import "./tailwind.css"
+import styles from "./styles/tailwind.css"
 
 export const links: LinksFunction = () => [
   {
@@ -25,9 +26,13 @@ export const links: LinksFunction = () => [
     href: "https://fonts.gstatic.com",
     crossOrigin: "anonymous",
   },
+  // {
+  //   rel: "stylesheet",
+  //   href: "https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap",
+  // },
   {
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap",
+    href: styles,
   },
 ]
 
