@@ -9,6 +9,8 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.0",
+    "@heroicons/react": "^2.2.0",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-collapsible": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.2",
@@ -39,7 +41,7 @@
     "@vitejs/plugin-vue": "^5.2.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
-    "cmdk": "^0.2.1",
+    "cmdk": "^1.0.0",
     "framer-motion": "^11.0.8",
     "isbot": "^3.6.8",
     "lucide-react": "^0.462.0",
@@ -48,7 +50,8 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
     "tailwind-merge": "^2.1.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "use-debounce": "^10.0.4"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.15.0",

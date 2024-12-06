@@ -2,6 +2,7 @@ import * as React from "react"
 import { AppSidebar } from "~/components/app-sidebar"
 import { EmojiPicker } from "~/components/emoji-picker"
 import { NavActions } from "~/components/nav-actions"
+import { SearchCommand } from "~/components/search-command"
 import {
   Breadcrumb,
   BreadcrumbInput,
@@ -66,6 +67,7 @@ export function Layout({
         </header>
         <div className="flex flex-1 flex-col gap-4 px-4 py-10">
           <div className="mx-auto w-full max-w-3xl">
+            <SearchCommand />
             {children}
           </div>
         </div>

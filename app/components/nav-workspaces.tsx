@@ -1,19 +1,12 @@
 import * as React from "react"
 import { Link, useNavigate } from "@remix-run/react"
-import { ChevronRight, MoreHorizontal, Plus } from "lucide-react"
+import { ChevronRight, FolderOpen, MoreHorizontal, Plus } from "lucide-react"
 
 import { AddLibraryItem } from "~/components/add-library-item"
 import { usePageTitles } from "~/hooks/use-page-titles"
 import { useWorkspaces } from "~/hooks/use-workspaces"
 import { usePageEmoji } from "~/hooks/use-page-emoji"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -71,8 +64,8 @@ function PageItem({ page, onPageTitleChange, basePath = "/pages" }: {
       <SidebarMenuSubItem>
         <Link to={`${basePath}/${page.id}`} className="w-full">
           <SidebarMenuSubButton>
-            <span>{emoji}</span>
-            <span>{title}</span>
+            <span className="mr-2">{emoji}</span>
+            <span className="truncate">{title}</span>
           </SidebarMenuSubButton>
         </Link>
       </SidebarMenuSubItem>
@@ -84,8 +77,8 @@ function PageItem({ page, onPageTitleChange, basePath = "/pages" }: {
       <SidebarMenuItem className="pl-3">
         <Link to={`${basePath}/${page.id}`} className="w-full">
           <SidebarMenuButton>
-            <span>{emoji}</span>
-            <span>{title}</span>
+            <span className="mr-2">{emoji}</span>
+            <span className="truncate">{title}</span>
           </SidebarMenuButton>
         </Link>
         <CollapsibleTrigger asChild>
@@ -93,7 +86,7 @@ function PageItem({ page, onPageTitleChange, basePath = "/pages" }: {
             className="left-2 bg-sidebar-accent text-sidebar-accent-foreground data-[state=open]:rotate-90"
             showOnHover
           >
-            <ChevronRight />
+            <ChevronRight className="h-4 w-4" />
           </SidebarMenuAction>
         </CollapsibleTrigger>
         <SidebarMenuAction 
@@ -101,7 +94,7 @@ function PageItem({ page, onPageTitleChange, basePath = "/pages" }: {
           onClick={handleAddPage}
           disabled={isPending}
         >
-          <Plus />
+          <Plus className="h-4 w-4" />
         </SidebarMenuAction>
         <CollapsibleContent>
           <SidebarMenuSub>
@@ -161,8 +154,8 @@ function WorkspaceItem({ workspace, onPageTitleChange, basePath = "/pages", isEx
       <SidebarMenuItem>
         <Link to={`${basePath}/${workspace.id}`} className="w-full">
           <SidebarMenuButton>
-            <span>{emoji}</span>
-            <span>{title}</span>
+            <FolderOpen className="mr-2 h-4 w-4" />
+            <span className="truncate">{title}</span>
           </SidebarMenuButton>
         </Link>
         {workspace.pages.length > 0 && (
@@ -171,7 +164,7 @@ function WorkspaceItem({ workspace, onPageTitleChange, basePath = "/pages", isEx
               className="left-2 bg-sidebar-accent text-sidebar-accent-foreground data-[state=open]:rotate-90"
               showOnHover
             >
-              <ChevronRight />
+              <ChevronRight className="h-4 w-4" />
             </SidebarMenuAction>
           </CollapsibleTrigger>
         )}
@@ -180,7 +173,7 @@ function WorkspaceItem({ workspace, onPageTitleChange, basePath = "/pages", isEx
           onClick={handleAddPage}
           disabled={isPending}
         >
-          <Plus />
+          <Plus className="h-4 w-4" />
         </SidebarMenuAction>
         <CollapsibleContent>
           <SidebarMenuSub>
@@ -251,8 +244,8 @@ export function NavWorkspaces({ onPageTitleChange }: NavWorkspacesProps) {
                   className="text-sidebar-foreground/70"
                   onClick={handleLoadMore}
                 >
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span>Show More ({workspaces.length - visibleItems} remaining)</span>
+                  <MoreHorizontal className="h-4 w-4 mr-2" />
+                  <span className="truncate">Show More ({workspaces.length - visibleItems} remaining)</span>
                 </SidebarMenuButton>
               ) : (
                 <SidebarMenuButton 
@@ -260,8 +253,8 @@ export function NavWorkspaces({ onPageTitleChange }: NavWorkspacesProps) {
                   onClick={handleCreatePage}
                   disabled={isPending}
                 >
-                  <Plus className="h-4 w-4" />
-                  <span>{isPending ? "Creating..." : "Add Page"}</span>
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="truncate">{isPending ? "Creating..." : "Add Page"}</span>
                 </SidebarMenuButton>
               )}
             </SidebarMenuItem>
@@ -287,16 +280,16 @@ export function NavWorkspaces({ onPageTitleChange }: NavWorkspacesProps) {
                   className="text-sidebar-foreground/70"
                   onClick={handleLoadMore}
                 >
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span>Show More ({workspaces.length - visibleItems} remaining)</span>
+                  <MoreHorizontal className="h-4 w-4 mr-2" />
+                  <span className="truncate">Show More ({workspaces.length - visibleItems} remaining)</span>
                 </SidebarMenuButton>
               ) : (
                 <SidebarMenuButton
                   className="text-sidebar-foreground/70"
                   onClick={() => setAddLibraryOpen(true)}
                 >
-                  <Plus className="h-4 w-4" />
-                  <span>Add to Library</span>
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="truncate">Add to Library</span>
                 </SidebarMenuButton>
               )}
             </SidebarMenuItem>

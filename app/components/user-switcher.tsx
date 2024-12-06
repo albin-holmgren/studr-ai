@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useNavigate } from "@remix-run/react"
+import { useNavigate, useLoaderData } from "@remix-run/react"
 import {
   BadgeCheck,
   Bell,
@@ -32,23 +32,17 @@ import {
   useSidebar,
 } from "~/components/ui/sidebar"
 
-export function UserSwitcher({
-  user = {
-    name: "John Doe",
-    email: "john@example.com",
-    avatar: "https://github.com/shadcn.png",
-  },
-}: {
-  user?: {
-    name: string
-    email: string
-    avatar: string
-  }
-}) {
+export function UserSwitcher() {
   const { isMobile } = useSidebar()
   const [upgradeOpen, setUpgradeOpen] = React.useState(false)
   const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [activeSection, setActiveSection] = React.useState("account")
+  const data = useLoaderData()
+  const user = data?.user || {
+    name: "User",
+    email: "",
+    avatar: null,
+  }
 
   const openNotificationSettings = () => {
     setActiveSection("notifications")
@@ -151,7 +145,15 @@ export function UserSwitcher({
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer text-red-600 dark:text-red-400">
+              <DropdownMenuItem 
+                onClick={async () => {
+                  const response = await fetch("/auth/logout", { method: "POST" })
+                  if (response.ok) {
+                    window.location.href = "/auth/login"
+                  }
+                }}
+                className="cursor-pointer text-red-600 dark:text-red-400"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

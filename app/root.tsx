@@ -13,8 +13,8 @@ import { json } from "@remix-run/node"
 
 import { createSupabaseServerClient } from "~/lib/supabase.server"
 import { Toaster } from "~/components/ui/toaster"
-// import "./tailwind.css"
-import styles from "./styles/tailwind.css"
+import ThemeProvider from "~/components/theme-provider"
+import styles from "./styles/globals.css"
 
 export const links: LinksFunction = () => [
   {
@@ -44,6 +44,23 @@ export const loader: LoaderFunction = async ({ request }) => {
     data: { session },
   } = await supabase.auth.getSession()
 
+  let user = null
+  if (session?.user) {
+    const { data: userData } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single()
+
+    user = {
+      id: session.user.id,
+      name: userData?.name || session.user.email?.split('@')[0] || 'User',
+      email: session.user.email,
+      avatar: userData?.avatar_url || session.user.user_metadata?.avatar_url,
+      subscription_tier: userData?.subscription_tier || 'free'
+    }
+  }
+
   return json(
     {
       env: {
@@ -51,9 +68,13 @@ export const loader: LoaderFunction = async ({ request }) => {
         SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       },
       session,
+      user,
     },
     {
-      headers: response.headers,
+      headers: {
+        ...response.headers,
+        'Cache-Control': 'no-store, max-age=0',
+      },
     }
   )
 }
@@ -70,18 +91,20 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <Outlet />
-        <div id="toast-root">
-          <Toaster />
-        </div>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.env = ${JSON.stringify(env)}`,
-          }}
-        />
-        <ScrollRestoration />
-        <Scripts />
-        <LiveReload />
+        <ThemeProvider>
+          <Outlet />
+          <div id="toast-root">
+            <Toaster />
+          </div>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `window.env = ${JSON.stringify(env)}`,
+            }}
+          />
+          <ScrollRestoration />
+          <Scripts />
+          <LiveReload />
+        </ThemeProvider>
       </body>
     </html>
   )

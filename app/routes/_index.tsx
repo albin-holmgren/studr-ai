@@ -21,7 +21,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     .limit(5)
 
   return json(
-    { recentDocuments, starredDocuments },
+    { 
+      recentDocuments: recentDocuments || [], 
+      starredDocuments: starredDocuments || [] 
+    },
     { headers: response.headers }
   )
 }

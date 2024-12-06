@@ -1,61 +1,72 @@
 import * as React from "react"
 import { Link, useLocation } from "@remix-run/react"
-import { Archive, Home, Search, Settings, Sparkles } from "lucide-react"
+import { Search, Sparkles, Home, Inbox } from "lucide-react"
 
-import { ArchiveCommand } from "~/components/archive-command"
-import { SearchCommand } from "~/components/search-command"
-import { SettingsCommand } from "~/components/settings-command"
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "~/components/ui/sidebar"
+import { Badge } from "~/components/ui/badge"
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "~/components/ui/sidebar"
+
+interface NavMainProps {
+  items?: Array<{
+    title: string
+    url: string
+    icon: string
+    isActive?: boolean
+    badge?: string
+  }>
+}
+
+const icons = {
+  Search,
+  Sparkles,
+  Home,
+  Inbox,
+}
 
 const items = [
   {
     title: "Search",
     url: "#",
-    icon: Search,
-    isSearch: true,
+    icon: "Search",
   },
   {
     title: "Ask AI",
     url: "/askai",
-    icon: Sparkles,
+    icon: "Sparkles",
   },
   {
     title: "Home",
     url: "/",
-    icon: Home,
+    icon: "Home",
   },
   {
     title: "Archive",
     url: "#",
-    icon: Archive,
-    isArchive: true,
+    icon: "Inbox",
   },
   {
     title: "Settings",
     url: "#",
-    icon: Settings,
-    isSettings: true,
+    icon: "Settings",
   },
 ]
 
-export function NavMain() {
+export function NavMain({ items: itemsProp = items }: NavMainProps) {
   const location = useLocation()
   const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [archiveOpen, setArchiveOpen] = React.useState(false)
 
+  const items = itemsProp.map((item) => ({
+    ...item,
+    isActive: location.pathname === item.url,
+  }))
+
   return (
-    <>
-      <SearchCommand />
-      <ArchiveCommand open={archiveOpen} onOpenChange={setArchiveOpen} />
-      <SettingsCommand open={settingsOpen} onOpenChange={setSettingsOpen} />
-      <SidebarMenu>
-        {items.map((item) => (
+    <SidebarMenu>
+      {items.map((item) => {
+        const Icon = icons[item.icon as keyof typeof icons]
+        return (
           <SidebarMenuItem key={item.title}>
-            {item.isSearch ? (
+            {item.title === "Search" ? (
               <SidebarMenuButton
                 onClick={() => {
                   const event = new KeyboardEvent("keydown", {
@@ -65,33 +76,36 @@ export function NavMain() {
                   document.dispatchEvent(event)
                 }}
               >
-                <item.icon />
+                <Icon className="h-4 w-4" />
                 <span>{item.title}</span>
+                <kbd className="ml-auto text-xs text-muted-foreground">
+                  ⌘K
+                </kbd>
               </SidebarMenuButton>
-            ) : item.isArchive ? (
+            ) : item.title === "Archive" ? (
               <SidebarMenuButton onClick={() => setArchiveOpen(true)}>
-                <item.icon />
+                <Icon className="h-4 w-4" />
                 <span>{item.title}</span>
               </SidebarMenuButton>
-            ) : item.isSettings ? (
+            ) : item.title === "Settings" ? (
               <SidebarMenuButton onClick={() => setSettingsOpen(true)}>
-                <item.icon />
+                <Icon className="h-4 w-4" />
                 <span>{item.title}</span>
               </SidebarMenuButton>
             ) : (
               <SidebarMenuButton asChild>
                 <Link 
                   to={item.url}
-                  className={location.pathname === item.url ? "data-[active=true]" : ""}
+                  className={item.isActive ? "data-[active=true]" : ""}
                 >
-                  <item.icon />
+                  <Icon className="h-4 w-4" />
                   <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             )}
           </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
-    </>
+        )
+      })}
+    </SidebarMenu>
   )
 }

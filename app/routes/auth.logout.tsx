@@ -1,8 +1,8 @@
-import type { ActionFunctionArgs } from "@remix-run/node"
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node"
 import { redirect } from "@remix-run/node"
 import { createServerClient } from "@supabase/auth-helpers-remix"
 
-export const action = async ({ request }: ActionFunctionArgs) => {
+async function handleLogout(request: Request) {
   const response = new Response()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,4 +17,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   })
 }
 
-export const loader = async () => redirect("/")
+export const action = async ({ request }: ActionFunctionArgs) => {
+  return handleLogout(request)
+}
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  return handleLogout(request)
+}

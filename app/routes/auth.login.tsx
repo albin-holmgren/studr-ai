@@ -80,25 +80,50 @@ export default function LoginPage() {
   const isSubmitting = navigation.state === "submitting"
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-muted/40">
-      <div className="mx-auto w-full max-w-[350px] space-y-6">
-        <div className="flex flex-col space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-          <p className="text-sm text-muted-foreground">
-            Enter your credentials to access your account
-          </p>
-        </div>
+    <div className="min-h-screen w-full bg-[#f1f1f1] flex items-center justify-center fixed inset-0">
+      <div className="w-full max-w-md px-4 mx-auto">
+        <div className="bg-white py-10 px-4 shadow-xl rounded-xl sm:px-10">
+          <div className="flex justify-start mb-10">
+            <img
+              src="/logo.png"
+              alt="Studr AI Logo"
+              className="h-12 w-auto"
+            />
+          </div>
 
-        <div className="grid gap-6">
-          <Form method="post">
+          <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+            Login
+          </h2>
+          <p className="mt-2.5 text-sm text-gray-500">
+            Continue to Studr AI platform
+          </p>
+
+          {actionData?.error && (
+            <div className="rounded-lg bg-red-50 p-4 mt-8 mb-6 border border-red-100">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <div className="text-sm font-medium text-red-800">
+                    {actionData.error}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Form method="post" className="mt-8">
             <input type="hidden" name="provider" value="google" />
             <Button 
               type="submit" 
               variant="outline" 
-              className="w-full bg-background"
+              className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#171717] focus:ring-offset-2"
               disabled={isSubmitting}
             >
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+              <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                   fill="#4285F4"
@@ -120,60 +145,80 @@ export default function LoginPage() {
             </Button>
           </Form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+          <div className="mt-8">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2.5 text-gray-500">Or continue with email</span>
+              </div>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
+
+            <Form method="post" className="mt-8 space-y-6">
+              <div>
+                <Label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email address
+                </Label>
+                <div className="mt-1.5">
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="Enter your email address"
+                    required
+                    className="block w-full appearance-none rounded-lg border border-gray-300 px-3.5 py-2.5 text-gray-900 placeholder-gray-400 shadow-sm transition-colors duration-200 focus:border-[#171717] focus:outline-none focus:ring-[#171717] focus:ring-offset-2 sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Password
+                  </Label>
+                  <Link to="/auth/forgot-password" className="text-sm text-gray-500 transition-colors duration-200 hover:text-gray-900">
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="mt-1.5">
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    required
+                    className="block w-full appearance-none rounded-lg border border-gray-300 px-3.5 py-2.5 text-gray-900 placeholder-gray-400 shadow-sm transition-colors duration-200 focus:border-[#171717] focus:outline-none focus:ring-[#171717] focus:ring-offset-2 sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Button 
+                  type="submit" 
+                  className="w-full rounded-lg bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#171717] focus:ring-offset-2"
+                  disabled={isSubmitting}
+                >
+                  Continue
+                </Button>
+              </div>
+            </Form>
+
+            <div className="mt-8 text-center text-sm text-gray-500">
+              <span>Don't have an account? </span>
+              <Link
+                to="/auth/register"
+                className="inline-flex items-center font-medium text-[#171717] transition-colors duration-200 hover:text-gray-800"
+              >
+                Get started
+                <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </Link>
             </div>
           </div>
-
-          <Form method="post" className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                autoCapitalize="none"
-                autoComplete="email"
-                autoCorrect="off"
-                required
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-              />
-            </div>
-
-            {actionData?.error && (
-              <div className="text-sm text-red-500">{actionData.error}</div>
-            )}
-
-            <Button className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Signing in..." : "Sign in"}
-            </Button>
-          </Form>
-        </div>
-
-        <div className="text-center text-sm">
-          Don't have an account?{" "}
-          <Link
-            to="/auth/register"
-            className="font-medium text-primary hover:underline"
-          >
-            Sign up
-          </Link>
         </div>
       </div>
     </div>

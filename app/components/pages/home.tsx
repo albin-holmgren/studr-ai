@@ -15,11 +15,21 @@ import { ScrollArea } from "~/components/ui/scroll-area"
 import { Separator } from "~/components/ui/separator"
 
 interface HomePageProps {
-  recentDocuments: any[]
-  starredDocuments: any[]
+  recentDocuments: Array<{
+    id: string
+    title: string
+    emoji: string
+    updated_at: string
+  }>
+  starredDocuments: Array<{
+    id: string
+    title: string
+    emoji: string
+    updated_at: string
+  }>
 }
 
-export function HomePage({ recentDocuments, starredDocuments }: HomePageProps) {
+export function HomePage({ recentDocuments = [], starredDocuments = [] }: HomePageProps) {
   const quickActions = [
     {
       name: "New Page",

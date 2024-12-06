@@ -52,6 +52,10 @@ create policy "Users can update own profile"
   on public.users for update
   using (auth.uid() = id);
 
+create policy "Enable insert for authentication service"
+  on public.users for insert
+  with check (true);  -- Allow Supabase Auth to create users
+
 -- Workspaces policies
 create policy "Users can view own workspaces"
   on public.workspaces for select
@@ -93,8 +97,13 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.users (id, email, name)
-  values (new.id, new.email, new.raw_user_meta_data->>'name');
+  insert into public.users (id, email, name, avatar_url)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    new.raw_user_meta_data->>'avatar_url'
+  );
   return new;
 end;
 $$;
