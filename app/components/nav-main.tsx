@@ -20,6 +20,7 @@ const icons = {
   Sparkles,
   Home,
   Inbox,
+  Settings
 }
 
 const items = [
