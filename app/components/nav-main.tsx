@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Link, useLocation } from "@remix-run/react"
-import { Search, Sparkles, Home, Inbox } from "lucide-react"
+import { Search, Sparkles, Home, Inbox,Settings } from "lucide-react"
 
 import { Badge } from "~/components/ui/badge"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "~/components/ui/sidebar"
