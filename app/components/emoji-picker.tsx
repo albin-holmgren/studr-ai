@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Smile } from "lucide-react"
 
-import { Button } from "~/components/ui/button"
+import { Button } from "~/components/ui/button-new"
 import {
   Popover,
   PopoverContent,
@@ -24,20 +24,27 @@ const EMOJI_CATEGORIES = [
 ]
 
 interface EmojiPickerProps {
-  value?: string
-  onChange?: (emoji: string) => void
+  emoji?: string
+  onEmojiSelect?: (emoji: string) => void
 }
 
-export function EmojiPicker({ value = "📄", onChange }: EmojiPickerProps) {
+export function EmojiPicker({ emoji = "📄", onEmojiSelect }: EmojiPickerProps) {
+  const [isOpen, setIsOpen] = React.useState(false)
+
+  const handleEmojiSelect = (selectedEmoji: string) => {
+    onEmojiSelect?.(selectedEmoji)
+    setIsOpen(false)
+  }
+
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button 
           variant="ghost" 
           size="sm"
           className="h-auto p-0 text-xl hover:bg-transparent focus-visible:ring-0"
         >
-          {value || <Smile className="h-4 w-4" />}
+          {emoji || <Smile className="h-4 w-4" />}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-0" align="start">
@@ -50,17 +57,18 @@ export function EmojiPicker({ value = "📄", onChange }: EmojiPickerProps) {
           </div>
           <div className="grid gap-2">
             {EMOJI_CATEGORIES.map((category) => (
-              <div key={category.name} className="grid gap-1.5">
-                <div className="text-xs text-muted-foreground">
+              <div key={category.name} className="space-y-2">
+                <h5 className="text-xs font-medium text-muted-foreground">
                   {category.name}
-                </div>
+                </h5>
                 <div className="grid grid-cols-8 gap-2">
                   {category.emojis.map((emoji) => (
                     <Button
                       key={emoji}
-                      variant="outline"
-                      className="h-8 w-8 p-0 text-lg"
-                      onClick={() => onChange?.(emoji)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-muted"
+                      onClick={() => handleEmojiSelect(emoji)}
                     >
                       {emoji}
                     </Button>

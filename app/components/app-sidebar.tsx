@@ -17,33 +17,41 @@ import {
   SidebarContent,
   SidebarHeader,
   SidebarRail,
+  SidebarFooter,
 } from "~/components/ui/sidebar"
-
-// This is sample data with nested pages
-const data = {
-  user: {
-    name: "John Doe",
-    email: "john@example.com",
-    avatar: "https://github.com/shadcn.png",
-  },
-}
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onPageTitleChange?: (id: string, title: string) => void
+  user?: {
+    id: string
+    name: string
+    email: string
+    avatar?: string | null
+    subscription?: any
+  }
 }
 
-export function AppSidebar({ onPageTitleChange, ...props }: AppSidebarProps) {
+export function AppSidebar({ onPageTitleChange, user, ...props }: AppSidebarProps) {
   return (
-    <Sidebar className="border-r-0" {...props}>
+    <Sidebar 
+      className="bg-[#FAFAFA] text-[#3F3F45]" 
+      {...props}
+    >
       <SidebarHeader>
-        <UserSwitcher user={data.user} />
+        {user && <UserSwitcher user={user} />}
         <NavMain />
       </SidebarHeader>
       <SidebarContent>
         <NavFavorites />
         <NavWorkspaces onPageTitleChange={onPageTitleChange} />
       </SidebarContent>
-      <TokenUsage totalTokens={50000} usedTokens={25000} />
+      {user && (
+        <SidebarFooter>
+          <div className="flex flex-col gap-2">
+            <TokenUsage userId={user.id} subscription={user.subscription} />
+          </div>
+        </SidebarFooter>
+      )}
       <SidebarRail />
     </Sidebar>
   )

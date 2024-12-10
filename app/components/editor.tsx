@@ -18,20 +18,19 @@ import {
   Strikethrough,
 } from "lucide-react"
 
-import { AiSuggestions } from "~/components/ai-suggestions"
 import { Button } from "~/components/ui/button"
 import { cn } from "~/lib/utils"
 
-const MenuButton = ({
-  isActive,
-  onClick,
-  children,
-}: {
-  isActive: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) => (
+const MenuButton = React.forwardRef<
+  HTMLButtonElement,
+  {
+    isActive: boolean
+    onClick: () => void
+    children: React.ReactNode
+  }
+>(({ isActive, onClick, children }, ref) => (
   <Button
+    ref={ref}
     variant={isActive ? "secondary" : "ghost"}
     size="sm"
     className="h-7 w-7 p-0"
@@ -39,14 +38,16 @@ const MenuButton = ({
   >
     {children}
   </Button>
-)
+))
+MenuButton.displayName = "MenuButton"
 
 interface EditorProps {
   title?: string
   onTitleChange?: (title: string) => void
+  content?: any
 }
 
-export function Editor({ title, onTitleChange }: EditorProps) {
+export function Editor({ title, onTitleChange, content }: EditorProps) {
   const [showSuggestions, setShowSuggestions] = React.useState(true)
   const editor = useEditor({
     extensions: [
@@ -70,6 +71,16 @@ export function Editor({ title, onTitleChange }: EditorProps) {
         },
       }),
     ],
+    content: content || {
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 1 },
+          content: [{ type: "text", text: title || "Untitled" }],
+        },
+      ],
+    },
     editorProps: {
       attributes: {
         class:
@@ -105,7 +116,7 @@ export function Editor({ title, onTitleChange }: EditorProps) {
 
   return (
     <div className="relative flex gap-8">
-      <div className="relative min-h-[500px] w-full max-w-2xl border-none sm:mb-[calc(20vh)]">
+      <div className="relative min-h-[500px] w-full max-w-[100%] border-none sm:mb-[calc(20vh)]">
         {editor && (
           <BubbleMenu
             className={cn(
@@ -180,14 +191,6 @@ export function Editor({ title, onTitleChange }: EditorProps) {
         )}
         <EditorContent editor={editor} />
       </div>
-
-      {showSuggestions && (
-        <div className="relative hidden w-96 xl:block">
-          <div className="fixed right-8 w-96">
-            <AiSuggestions content={editor.getText()} />
-          </div>
-        </div>
-      )}
     </div>
   )
 }

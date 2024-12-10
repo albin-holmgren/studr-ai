@@ -1,50 +1,114 @@
 import * as React from "react"
 import { Bot, Send, Sparkles, User } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { v4 as uuidv4 } from "uuid"
 
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { ScrollArea } from "~/components/ui/scroll-area"
+import { useFetcher } from "@remix-run/react"
+import { createClient } from "@supabase/supabase-js"
 
 interface Message {
   id: string
   content: string
   role: "user" | "assistant"
-  timestamp: Date
+  created_at: string
+  user_id: string
+  conversation_id: string
 }
 
-export function AiChat() {
-  const [messages, setMessages] = React.useState<Message[]>([])
+interface AiChatProps {
+  initialMessages?: Message[]
+  userId?: string
+  hasOpenAI: boolean
+  supabaseUrl: string
+  supabaseAnonKey: string
+}
+
+export function AiChat({ 
+  initialMessages = [], 
+  userId, 
+  hasOpenAI,
+  supabaseUrl,
+  supabaseAnonKey,
+}: AiChatProps) {
+  const [messages, setMessages] = React.useState<Message[]>(initialMessages)
   const [input, setInput] = React.useState("")
-  const [isExpanded, setIsExpanded] = React.useState(false)
+  const [isExpanded, setIsExpanded] = React.useState(initialMessages.length > 0)
+  const [isLoading, setIsLoading] = React.useState(false)
   const scrollAreaRef = React.useRef<HTMLDivElement>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const formRef = React.useRef<HTMLFormElement>(null)
+  const conversationId = React.useRef(uuidv4())
 
-  const handleSend = () => {
-    if (!input.trim()) return
+  const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-    const newMessage: Message = {
-      id: String(Date.now()),
+  const handleSend = async () => {
+    if (!input.trim() || isLoading || !hasOpenAI) return
+
+    setIsLoading(true)
+    const userMessage: Message = {
+      id: uuidv4(),
       content: input,
       role: "user",
-      timestamp: new Date(),
+      created_at: new Date().toISOString(),
+      user_id: userId || 'anonymous',
+      conversation_id: conversationId.current,
     }
 
-    setMessages((prev) => [...prev, newMessage])
-    setInput("")
-    setIsExpanded(true)
+    try {
+      // Save user message to Supabase
+      await supabase.from("chat_messages").insert(userMessage)
+      setMessages((prev) => [...prev, userMessage])
+      setInput("")
+      setIsExpanded(true)
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: String(Date.now() + 1),
-        content: "This is a simulated AI response. In a real implementation, this would be connected to an AI service.",
-        role: "assistant",
-        timestamp: new Date(),
+      // Get AI response
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: input }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to get AI response")
       }
-      setMessages((prev) => [...prev, aiResponse])
-    }, 1000)
+
+      const data = await response.json()
+      
+      if (data.error) {
+        throw new Error(data.error)
+      }
+      
+      const aiMessage: Message = {
+        id: uuidv4(),
+        content: data.reply,
+        role: "assistant",
+        created_at: new Date().toISOString(),
+        user_id: userId || 'anonymous',
+        conversation_id: conversationId.current,
+      }
+
+      // Save AI message to Supabase
+      await supabase.from("chat_messages").insert(aiMessage)
+      setMessages((prev) => [...prev, aiMessage])
+    } catch (error) {
+      console.error("Chat error:", error)
+      const errorMessage: Message = {
+        id: uuidv4(),
+        content: "I'm sorry, I encountered an error while processing your request. Please try again.",
+        role: "assistant",
+        created_at: new Date().toISOString(),
+        user_id: userId || 'anonymous',
+        conversation_id: conversationId.current,
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   React.useEffect(() => {
@@ -98,7 +162,7 @@ export function AiChat() {
                       <div
                         className={`absolute -top-5 right-0 hidden whitespace-nowrap text-xs text-muted-foreground group-hover:block`}
                       >
-                        {message.timestamp.toLocaleTimeString()}
+                        {new Date(message.created_at).toLocaleTimeString()}
                       </div>
                     </div>
                     {message.role === "user" && (
@@ -108,6 +172,24 @@ export function AiChat() {
                     )}
                   </motion.div>
                 ))}
+                {isLoading && (
+                  <motion.div
+                    className="flex justify-start gap-3"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md bg-primary text-primary-foreground">
+                      <Bot className="h-4 w-4" />
+                    </div>
+                    <div className="flex max-w-xl items-center rounded-lg bg-muted px-3 py-2 text-sm">
+                      <div className="flex gap-1">
+                        <span className="animate-bounce">•</span>
+                        <span className="animate-bounce" style={{ animationDelay: "0.2s" }}>•</span>
+                        <span className="animate-bounce" style={{ animationDelay: "0.4s" }}>•</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </div>
             </ScrollArea>
           </motion.div>
@@ -147,7 +229,7 @@ export function AiChat() {
                     onChange={(e) => setInput(e.target.value)}
                     className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
-                  <Button type="submit" size="sm">
+                  <Button type="submit" disabled={isLoading}>
                     <Send className="h-4 w-4 mr-2" />
                     Send
                   </Button>
@@ -181,8 +263,9 @@ export function AiChat() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   className="flex-1"
+                  disabled={isLoading}
                 />
-                <Button type="submit">
+                <Button type="submit" disabled={isLoading}>
                   <Send className="h-4 w-4" />
                   <span className="sr-only">Send message</span>
                 </Button>

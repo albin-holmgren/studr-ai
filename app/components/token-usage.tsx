@@ -1,19 +1,55 @@
-import * as React from "react"
-import { ArrowUpCircle } from "lucide-react"
-
-import { Button } from "~/components/ui/button"
-import { UpgradeDialog } from "~/components/upgrade-dialog"
+import * as React from "react";
+import { ArrowUpCircle } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "./ui/button";
+import { UpgradeDialog } from "./upgrade-dialog";
 
 interface TokenUsageProps {
-  totalTokens: number
-  usedTokens: number
+  userId: string;
+  subscription: any;
 }
 
-export function TokenUsage({ totalTokens, usedTokens }: TokenUsageProps) {
-  const [upgradeOpen, setUpgradeOpen] = React.useState(false)
-  const percentage = Math.round((usedTokens / totalTokens) * 100)
-  const remaining = totalTokens - usedTokens
-  const isLow = percentage > 80
+export function TokenUsage({ userId, subscription }: TokenUsageProps) {
+  const [usage, setUsage] = React.useState(0);
+  const [loading, setLoading] = React.useState(true);
+  const [upgradeOpen, setUpgradeOpen] = React.useState(false);
+
+  const limit = 2000; // 2k tokens
+
+  const fetchUsage = React.useCallback(async () => {
+    if (!userId) return;
+    
+    try {
+      const response = await fetch(`/api/tokens?userId=${userId}`);
+      if (!response.ok) throw new Error("Failed to fetch token usage");
+      const data = await response.json();
+      setUsage(data.tokens);
+
+      // Show warning if usage is high
+      if (data.tokens > limit * 0.9) {
+        toast.warning("You're running low on tokens! Consider upgrading your plan.", {
+          duration: 10000,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching token usage:", error);
+      toast.error("Failed to fetch token usage");
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, limit]);
+
+  React.useEffect(() => {
+    if (userId) {
+      fetchUsage();
+      // Refresh every 5 minutes
+      const interval = setInterval(fetchUsage, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [fetchUsage, userId]);
+
+  const percentage = Math.min((usage / limit) * 100, 100);
+  const isLow = percentage > 80;
 
   return (
     <>
@@ -25,7 +61,7 @@ export function TokenUsage({ totalTokens, usedTokens }: TokenUsageProps) {
               Token Usage
             </span>
             <span className={`font-medium ${isLow ? "text-red-500" : "text-sidebar-foreground/70"}`}>
-              {percentage}%
+              {loading ? "..." : `${Math.round(percentage)}%`}
             </span>
           </div>
           
@@ -34,13 +70,13 @@ export function TokenUsage({ totalTokens, usedTokens }: TokenUsageProps) {
               className={`absolute left-0 top-0 h-full rounded-full transition-all duration-300 ${
                 isLow ? "bg-red-500" : "bg-blue-500"
               }`}
-              style={{ width: `${percentage}%` }}
+              style={{ width: `${Math.max(percentage, 1)}%` }}
             />
           </div>
 
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-sidebar-foreground/70">
-              {remaining.toLocaleString()} tokens remaining
+              {loading ? "Loading..." : `${(limit - usage).toLocaleString()} tokens remaining`}
             </span>
             <Button 
               variant="ghost"
@@ -55,5 +91,5 @@ export function TokenUsage({ totalTokens, usedTokens }: TokenUsageProps) {
         </div>
       </div>
     </>
-  )
+  );
 }

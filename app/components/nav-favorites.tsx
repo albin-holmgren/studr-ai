@@ -10,38 +10,23 @@ import {
   SidebarMenuButton,
 } from "~/components/ui/sidebar"
 
-import { useBookmarks } from "~/hooks/use-bookmarks"
-import { usePageEmoji } from "~/hooks/use-page-emoji"
-
 interface NavFavoritesProps {
-  favorites: Array<{
+  favorites?: Array<{
     name: string
     url: string
     emoji: string
   }>
 }
 
-export function NavFavorites({ favorites }: NavFavoritesProps) {
-  const { bookmarks } = useBookmarks()
-  const { getEmoji } = usePageEmoji("")
-
-  // Sort bookmarks alphabetically
-  const sortedBookmarks = [...bookmarks].sort((a, b) => 
-    a.name.localeCompare(b.name)
-  )
-
-  const favoritesList = sortedBookmarks.map((item) => ({
-    name: item.name,
-    url: item.url,
-    emoji: getEmoji(item.id),
-  }))
-
+export function NavFavorites({ favorites = [] }: NavFavoritesProps) {
   return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Bookmarks</SidebarGroupLabel>
+    <SidebarGroup>
+      <SidebarGroupLabel className="text-[#77777C]">
+        Bookmarks
+      </SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
-          {favoritesList.map((item) => (
+          {favorites.map((item) => (
             <SidebarMenuItem key={item.url}>
               <SidebarMenuButton asChild>
                 <RemixLink to={item.url}>

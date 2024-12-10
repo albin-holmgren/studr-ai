@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/auth-helpers-remix'
+import { createClient } from "@supabase/supabase-js";
 import type { Database } from './database.types'
 
 export function createSupabaseServerClient({
@@ -8,42 +9,39 @@ export function createSupabaseServerClient({
   request: Request
   response: Response
 }) {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL')
-  }
-  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
-  }
+  const supabaseUrl = process.env.SUPABASE_URL!
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!
 
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      request,
-      response,
-      options: {
-        db: {
-          schema: 'public'
-        },
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        },
-        global: {
-          headers: { 'x-my-custom-header': 'studr-ai' },
-        },
-      },
-      // Add cookie options
-      cookieOptions: {
-        name: 'sb-auth',
-        lifetime: 60 * 60 * 8, // 8 hours
-        domain: '',
-        path: '/',
-        sameSite: 'lax',
-      },
-    }
-  )
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    request,
+    response,
+  })
 
   return supabase
+}
+
+export async function uploadImage(file: File, userId: string) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${userId}-${Date.now()}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from("avatars")
+      .upload(fileName, file);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(fileName);
+
+    return { url: publicUrl, error: null };
+  } catch (error) {
+    return { url: null, error };
+  }
 }

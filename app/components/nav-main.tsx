@@ -1,17 +1,27 @@
 import * as React from "react"
-import { Link, useLocation } from "@remix-run/react"
-import { Search, Sparkles, Home, Inbox } from "lucide-react"
+import { Link, useLocation, useNavigate } from "@remix-run/react"
+import { Search, Sparkles, Home, Archive, Settings } from "lucide-react"
 
+import { cn } from "~/lib/utils"
 import { Badge } from "~/components/ui/badge"
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "~/components/ui/sidebar"
+import { 
+  SidebarMenu, 
+  SidebarMenuButton, 
+  SidebarMenuItem,
+  SidebarMenuBadge 
+} from "~/components/ui/sidebar"
+import { ArchiveCommand } from "~/components/archive-command"
+import { SettingsDialog } from "~/components/settings-dialog"
+import { SearchCommand } from "~/components/search-command"
 
 interface NavMainProps {
   items?: Array<{
     title: string
-    url: string
+    url?: string
     icon: string
     isActive?: boolean
     badge?: string
+    onClick?: () => void
   }>
 }
 
@@ -19,13 +29,13 @@ const icons = {
   Search,
   Sparkles,
   Home,
-  Inbox,
+  Archive,
+  Settings,
 }
 
 const items = [
   {
     title: "Search",
-    url: "#",
     icon: "Search",
   },
   {
@@ -40,72 +50,58 @@ const items = [
   },
   {
     title: "Archive",
-    url: "#",
-    icon: "Inbox",
+    icon: "Archive",
   },
   {
     title: "Settings",
-    url: "#",
     icon: "Settings",
   },
 ]
 
 export function NavMain({ items: itemsProp = items }: NavMainProps) {
   const location = useLocation()
-  const [settingsOpen, setSettingsOpen] = React.useState(false)
-  const [archiveOpen, setArchiveOpen] = React.useState(false)
-
-  const items = itemsProp.map((item) => ({
-    ...item,
-    isActive: location.pathname === item.url,
-  }))
+  const navigate = useNavigate()
+  const [showArchive, setShowArchive] = React.useState(false)
+  const [showSettings, setShowSettings] = React.useState(false)
+  const [showSearch, setShowSearch] = React.useState(false)
 
   return (
-    <SidebarMenu>
-      {items.map((item) => {
-        const Icon = icons[item.icon as keyof typeof icons]
-        return (
-          <SidebarMenuItem key={item.title}>
-            {item.title === "Search" ? (
-              <SidebarMenuButton
-                onClick={() => {
-                  const event = new KeyboardEvent("keydown", {
-                    key: "k",
-                    metaKey: true,
-                  })
-                  document.dispatchEvent(event)
-                }}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.title}</span>
-                <kbd className="ml-auto text-xs text-muted-foreground">
-                  ⌘K
-                </kbd>
-              </SidebarMenuButton>
-            ) : item.title === "Archive" ? (
-              <SidebarMenuButton onClick={() => setArchiveOpen(true)}>
-                <Icon className="h-4 w-4" />
-                <span>{item.title}</span>
-              </SidebarMenuButton>
-            ) : item.title === "Settings" ? (
-              <SidebarMenuButton onClick={() => setSettingsOpen(true)}>
-                <Icon className="h-4 w-4" />
-                <span>{item.title}</span>
-              </SidebarMenuButton>
-            ) : (
-              <SidebarMenuButton asChild>
-                <Link 
-                  to={item.url}
-                  className={item.isActive ? "data-[active=true]" : ""}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.title}</span>
+    <>
+      <SidebarMenu>
+        {itemsProp.map((item) => {
+          const Icon = icons[item.icon as keyof typeof icons]
+          const isActive = item.url ? location.pathname === item.url : false
+
+          return (
+            <SidebarMenuItem key={item.title}>
+              {item.url ? (
+                <Link to={item.url}>
+                  <SidebarMenuButton isActive={isActive}>
+                    <Icon className="h-5 w-5" />
+                    <span>{item.title}</span>
+                    {item.badge && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
+                  </SidebarMenuButton>
                 </Link>
-              </SidebarMenuButton>
-            )}
-          </SidebarMenuItem>
-        )
-      })}
-    </SidebarMenu>
+              ) : (
+                <SidebarMenuButton 
+                  onClick={() => {
+                    if (item.title === "Archive") setShowArchive(true)
+                    if (item.title === "Settings") setShowSettings(true)
+                    if (item.title === "Search") setShowSearch(true)
+                  }}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                  {item.badge && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
+                </SidebarMenuButton>
+              )}
+            </SidebarMenuItem>
+          )
+        })}
+      </SidebarMenu>
+      <ArchiveCommand open={showArchive} onOpenChange={setShowArchive} />
+      <SettingsDialog open={showSettings} onOpenChange={setShowSettings} />
+      <SearchCommand open={showSearch} onOpenChange={setShowSearch} />
+    </>
   )
 }

@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL_NON_POOLING")
+}
+
+model User {
+  id                    String    @id
+  email                 String    @unique
+  name                  String?
+  avatarUrl             String?    @map("avatar_url")
+  passwordHash          String?    @map("password_hash")
+  documents             Document[]
+  subscription          Subscription?
+  notificationSettings  NotificationSettings?
+  tokenUsage            TokenUsage[]
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Document {
+  id          String     @id
+  title       String     @default("Untitled")
+  content     Json?
+  emoji       String     @default("📄")
+  isStarred   Boolean    @default(false) @map("is_starred")
+  isArchived  Boolean    @default(false) @map("is_archived")
+  isDeleted   Boolean    @default(false) @map("is_deleted")
+  isPublished Boolean    @default(false) @map("is_published")
+  position    Int        @default(0)
+  tags        String[]   @default([])
+  parentId    String?    @map("parent_id")
+  parent      Document?  @relation("DocumentToDocument", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children    Document[] @relation("DocumentToDocument")
+  userId      String     @map("user_id")
+  user        User       @relation(fields: [userId], references: [id])
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@index([isArchived])
+  @@index([isDeleted])
+  @@index([userId])
+  @@map("documents")
+}
+
+model NotificationSettings {
+  id                 String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailNotifications Boolean  @default(true)
+  studyReminders     Boolean  @default(true)
+  marketingEmails    Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  status               String   @default("inactive") // active, inactive
+  plan                 String   @default("free") // free, pro
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TokenUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokens    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("token_usage")
+}

@@ -25,7 +25,7 @@ import { LinkLibraryDialog } from "~/components/link-library-dialog"
 import { MoveToDialog } from "~/components/move-to-dialog"
 import { ShareDialog } from "~/components/share-dialog"
 import { VersionHistoryDialog } from "~/components/version-history-dialog"
-import { Button } from "~/components/ui/button"
+import { Button } from "~/components/ui/button-new"
 import {
   DropdownMenu,
   DropdownMenuContent,

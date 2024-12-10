@@ -7,29 +7,22 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useRouteError,
 } from "@remix-run/react"
-import type { LinksFunction, LoaderFunction } from "@remix-run/node"
-import { json } from "@remix-run/node"
+import type { LinksFunction, LoaderFunction, ActionFunction } from "@remix-run/node"
+import { json, redirect } from "@remix-run/node"
 
 import { createSupabaseServerClient } from "~/lib/supabase.server"
 import { Toaster } from "~/components/ui/toaster"
 import ThemeProvider from "~/components/theme-provider"
 import styles from "./styles/globals.css"
+import { PrismaClient } from '@prisma/client'
+import { SearchCommand } from "~/components/search-command"
+import { ArchiveCommand } from "~/components/archive-command"
+import { SettingsDialog } from "~/components/settings-dialog"
+import type { User, LoaderData } from "~/lib/types"
 
 export const links: LinksFunction = () => [
-  {
-    rel: "preconnect",
-    href: "https://fonts.googleapis.com",
-  },
-  {
-    rel: "preconnect",
-    href: "https://fonts.gstatic.com",
-    crossOrigin: "anonymous",
-  },
-  // {
-  //   rel: "stylesheet",
-  //   href: "https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap",
-  // },
   {
     rel: "stylesheet",
     href: styles,
@@ -37,50 +30,100 @@ export const links: LinksFunction = () => [
 ]
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const response = new Response()
-  const supabase = createSupabaseServerClient({ request, response })
+  try {
+    const response = new Response()
+    const supabase = createSupabaseServerClient({ request, response })
+    const prisma = new PrismaClient()
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-  let user = null
-  if (session?.user) {
-    const { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.user.id)
-      .single()
+    let user: User | null = null
+    if (session?.user) {
+      const dbUser = await prisma.user.findUnique({
+        where: {
+          id: session.user.id,
+        },
+        include: {
+          notificationSettings: true,
+          subscription: true
+        }
+      })
 
-    user = {
-      id: session.user.id,
-      name: userData?.name || session.user.email?.split('@')[0] || 'User',
-      email: session.user.email,
-      avatar: userData?.avatar_url || session.user.user_metadata?.avatar_url,
-      subscription_tier: userData?.subscription_tier || 'free'
+      if (dbUser) {
+        user = {
+          id: dbUser.id,
+          name: dbUser.name || "Anonymous User",
+          email: dbUser.email,
+          avatar: dbUser.avatarUrl,
+          notificationSettings: dbUser.notificationSettings ? {
+            emailNotifications: dbUser.notificationSettings.emailNotifications,
+            studyReminders: dbUser.notificationSettings.studyReminders,
+            marketingEmails: dbUser.notificationSettings.marketingEmails
+          } : null,
+          subscription: dbUser.subscription ? {
+            plan: dbUser.subscription.plan,
+            status: dbUser.subscription.status
+          } : null
+        }
+      }
     }
+
+    return json<LoaderData>({ user })
+  } catch (error) {
+    console.error('Error in root loader:', error)
+    return json<LoaderData>({ user: null, error: "Internal server error" })
   }
-
-  return json(
-    {
-      env: {
-        SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-        SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      },
-      session,
-      user,
-    },
-    {
-      headers: {
-        ...response.headers,
-        'Cache-Control': 'no-store, max-age=0',
-      },
-    }
-  )
 }
 
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "toggleTheme") {
+    const theme = formData.get("theme");
+    const response = await fetch("/api/theme", {
+      method: "POST",
+      body: JSON.stringify({ theme }),
+    });
+    const data = await response.json();
+    return json(data);
+  }
+
+  return null;
+};
+
 export default function App() {
-  const { env } = useLoaderData<typeof loader>()
+  const { user } = useLoaderData<LoaderData>()
+  const [isClient, setIsClient] = React.useState(false)
+  const [showSearch, setShowSearch] = React.useState(false)
+  const [showArchive, setShowArchive] = React.useState(false)
+  const [showSettings, setShowSettings] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  React.useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        setShowSearch(true)
+      }
+      if (event.key === "b" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        setShowArchive(true)
+      }
+      if (event.key === "," && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        setShowSettings(true)
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [])
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -91,20 +134,74 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <ThemeProvider>
-          <Outlet />
-          <div id="toast-root">
+        {isClient ? (
+          <ThemeProvider>
+            <Outlet />
+            <SearchCommand open={showSearch} onOpenChange={setShowSearch} />
+            <ArchiveCommand open={showArchive} onOpenChange={setShowArchive} />
+            {user && showSettings && (
+              <SettingsDialog
+                user={user}
+                open={showSettings}
+                onOpenChange={setShowSettings}
+              />
+            )}
             <Toaster />
+          </ThemeProvider>
+        ) : (
+          <Outlet />
+        )}
+        <ScrollRestoration />
+        <Scripts />
+        <LiveReload />
+      </body>
+    </html>
+  )
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError()
+  console.error("Root error:", error)
+
+  let errorMessage = "An unexpected error occurred"
+  let statusText = "Error"
+  
+  if (error instanceof Error) {
+    errorMessage = error.message
+  } else if (error instanceof Response) {
+    errorMessage = error.statusText || error.data
+    statusText = error.statusText || "Error"
+  } else if (error && typeof error === 'object' && 'data' in error) {
+    errorMessage = String(error.data)
+    if ('statusText' in error) {
+      statusText = String(error.statusText)
+    }
+  }
+
+  return (
+    <html>
+      <head>
+        <title>Error - {statusText}</title>
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <div className="min-h-screen flex flex-col items-center justify-center p-4">
+          <div className="max-w-md w-full space-y-4">
+            <h1 className="text-2xl font-bold text-red-600">{statusText}</h1>
+            <div className="bg-red-50 p-4 rounded-md border border-red-200">
+              <pre className="text-sm text-red-800 whitespace-pre-wrap">
+                {errorMessage}
+              </pre>
+            </div>
+            <div className="flex justify-center">
+              <a href="/" className="text-blue-600 hover:underline">
+                Go back home
+              </a>
+            </div>
           </div>
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `window.env = ${JSON.stringify(env)}`,
-            }}
-          />
-          <ScrollRestoration />
-          <Scripts />
-          <LiveReload />
-        </ThemeProvider>
+        </div>
+        <Scripts />
       </body>
     </html>
   )

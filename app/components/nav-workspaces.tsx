@@ -34,7 +34,7 @@ interface NavWorkspacesProps {
   onPageTitleChange?: (id: string, title: string) => void
 }
 
-function PageItem({ page, onPageTitleChange, basePath = "/pages" }: { 
+function PageItem({ page, onPageTitleChange, basePath = "/documents" }: { 
   page: Page
   onPageTitleChange?: (id: string, title: string) => void
   basePath?: string 
@@ -113,7 +113,7 @@ function PageItem({ page, onPageTitleChange, basePath = "/pages" }: {
   )
 }
 
-function WorkspaceItem({ workspace, onPageTitleChange, basePath = "/pages", isExpanded = false }: {
+function WorkspaceItem({ workspace, onPageTitleChange, basePath = "/documents", isExpanded = false }: {
   workspace: {
     id: string
     name: string
@@ -207,7 +207,7 @@ export function NavWorkspaces({ onPageTitleChange }: NavWorkspacesProps) {
   const handleCreatePage = React.useCallback(() => {
     startTransition(() => {
       const newPage = addPage()
-      navigate(`/pages/${newPage.id}`)
+      navigate(`/documents/${newPage.id}`)
     })
   }, [addPage, navigate])
 
@@ -228,7 +228,9 @@ export function NavWorkspaces({ onPageTitleChange }: NavWorkspacesProps) {
       />
 
       <SidebarGroup>
-        <SidebarGroupLabel>Pages</SidebarGroupLabel>
+        <SidebarGroupLabel className="text-[#77777C]">
+          Pages
+        </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             {visibleWorkspaces.map((workspace) => (
@@ -263,7 +265,9 @@ export function NavWorkspaces({ onPageTitleChange }: NavWorkspacesProps) {
       </SidebarGroup>
 
       <SidebarGroup>
-        <SidebarGroupLabel>Library</SidebarGroupLabel>
+        <SidebarGroupLabel className="text-[#77777C]">
+          Library
+        </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             {visibleWorkspaces.map((workspace) => (

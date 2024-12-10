@@ -61,16 +61,18 @@ BreadcrumbLink.displayName = "BreadcrumbLink"
 interface BreadcrumbInputProps {
   value?: string
   onChange?: (value: string) => void
+  placeholder?: string
 }
 
 const BreadcrumbInput = React.forwardRef<
   HTMLInputElement,
   BreadcrumbInputProps
->(({ value, onChange }, ref) => (
+>(({ value = "", onChange, placeholder }, ref) => (
   <Input
     ref={ref}
     value={value}
     onChange={(e) => onChange?.(e.target.value)}
+    placeholder={placeholder}
     className="h-auto border-none bg-transparent px-0 text-base font-semibold shadow-none focus-visible:ring-0"
   />
 ))
@@ -121,7 +123,7 @@ const BreadcrumbEllipsis = ({
     <span className="sr-only">More</span>
   </span>
 )
-BreadcrumbEllipsis.displayName = "BreadcrumbElipssis"
+BreadcrumbEllipsis.displayName = "BreadcrumbEllipsis"
 
 export {
   Breadcrumb,

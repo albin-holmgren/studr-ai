@@ -1,16 +1,6 @@
 import * as React from "react"
 import { useNavigate } from "@remix-run/react"
-import {
-  Calendar,
-  CreditCard,
-  FileText,
-  FolderPlus,
-  Hash,
-  Settings,
-  Tags,
-  User,
-  Folder,
-} from "lucide-react"
+import { FileText } from "lucide-react"
 
 import {
   Command,
@@ -23,8 +13,12 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "~/components/ui/command"
-import { DialogTitle } from "~/components/ui/dialog"
 import { useDebouncedCallback } from "use-debounce"
+
+interface SearchCommandProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
 
 interface SearchResult {
   documents: Array<{
@@ -33,167 +27,114 @@ interface SearchResult {
     emoji: string
     updated_at: string
   }>
-  workspaces: Array<{
-    id: string
-    name: string
-    emoji: string
-  }>
 }
 
-export function SearchCommand() {
+export function SearchCommand({ open: controlledOpen, onOpenChange }: SearchCommandProps) {
   const navigate = useNavigate()
-  const [open, setOpen] = React.useState(false)
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
+  const [loading, setLoading] = React.useState(false)
   const [results, setResults] = React.useState<SearchResult>({
     documents: [],
-    workspaces: [],
   })
+
+  const open = controlledOpen ?? uncontrolledOpen
+  const setOpen = onOpenChange ?? setUncontrolledOpen
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        setOpen((open) => !open)
+        setOpen(!open)
       }
     }
+
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
-  }, [])
+  }, [open, setOpen])
 
   const handleSearch = useDebouncedCallback(async (query: string) => {
     if (!query) {
-      setResults({ documents: [], workspaces: [] })
+      setResults({ documents: [] })
       return
     }
 
-    const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
-    if (response.ok) {
-      const data = await response.json()
-      setResults(data)
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        credentials: 'same-origin'
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setResults(data)
+      } else {
+        console.error('Search API endpoint returned an error:', response.status)
+        setResults({ documents: [] })
+      }
+    } catch (error) {
+      console.error('Search error:', error)
+      setResults({ documents: [] })
+    } finally {
+      setLoading(false)
     }
   }, 300)
 
-  const handleCommand = (command: string) => {
-    switch (command) {
-      case "calendar":
-        // Handle calendar action
-        break
-      case "new-project":
-        navigate("/workspaces/new")
-        break
-      case "new-document":
-        navigate("/pages/new")
-        break
-      case "profile":
-        // Open settings dialog with profile section
-        break
-      case "billing":
-        // Open settings dialog with billing section
-        break
-      case "settings":
-        // Open settings dialog
-        break
-      case "add-tag":
-        // Handle tag action
-        break
-      case "add-label":
-        // Handle label action
-        break
-    }
-    setOpen(false)
-  }
-
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <DialogTitle className="sr-only">Search Commands</DialogTitle>
-      <Command className="rounded-lg border shadow-md">
+      <Command className="rounded-lg border bg-white">
         <CommandInput 
-          placeholder="Type a command or search..." 
+          placeholder="Type a command or search..."
           onValueChange={handleSearch}
+          className="h-11 border-none bg-white px-3"
         />
-        <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
-          {(results.documents.length > 0 || results.workspaces.length > 0) && (
-            <>
-              {results.documents.length > 0 && (
-                <CommandGroup heading="Documents">
-                  {results.documents.map((doc) => (
-                    <CommandItem
-                      key={doc.id}
-                      onSelect={() => {
-                        navigate(`/pages/${doc.id}`)
-                        setOpen(false)
-                      }}
-                    >
-                      <span className="mr-2 text-lg">{doc.emoji}</span>
-                      <span>{doc.title}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-              {results.workspaces.length > 0 && (
-                <CommandGroup heading="Workspaces">
-                  {results.workspaces.map((workspace) => (
-                    <CommandItem
-                      key={workspace.id}
-                      onSelect={() => {
-                        navigate(`/workspaces/${workspace.id}`)
-                        setOpen(false)
-                      }}
-                    >
-                      <Folder className="mr-2 h-4 w-4" />
-                      <span>{workspace.name}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-              <CommandSeparator />
-            </>
+        <CommandList className="max-h-[300px] overflow-y-auto bg-white p-2">
+          <CommandEmpty className="py-6 text-center text-sm">
+            {loading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span>Searching...</span>
+              </div>
+            ) : (
+              "No results found."
+            )}
+          </CommandEmpty>
+          
+          {results.documents.length > 0 && (
+            <CommandGroup heading="Documents">
+              {results.documents.map((doc) => (
+                <CommandItem
+                  key={doc.id}
+                  onSelect={() => {
+                    navigate(`/documents/${doc.id}`)
+                    setOpen(false)
+                  }}
+                >
+                  <span className="mr-2 flex h-4 w-4 items-center justify-center">
+                    {doc.emoji || <FileText className="h-4 w-4" />}
+                  </span>
+                  <span>{doc.title}</span>
+                  <CommandShortcut className="text-xs text-muted-foreground">
+                    {new Date(doc.updated_at).toLocaleDateString()}
+                  </CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
           )}
-          <CommandGroup heading="Suggestions">
-            <CommandItem onSelect={() => handleCommand("calendar")}>
-              <Calendar className="mr-2 h-4 w-4" />
-              <span>Calendar</span>
-            </CommandItem>
-            <CommandItem onSelect={() => handleCommand("new-project")}>
-              <FolderPlus className="mr-2 h-4 w-4" />
-              <span>New Project</span>
-              <CommandShortcut>⌘N</CommandShortcut>
-            </CommandItem>
-            <CommandItem onSelect={() => handleCommand("new-document")}>
-              <FileText className="mr-2 h-4 w-4" />
-              <span>New Document</span>
-              <CommandShortcut>⌘D</CommandShortcut>
-            </CommandItem>
-          </CommandGroup>
-          <CommandSeparator />
-          <CommandGroup heading="Settings">
-            <CommandItem onSelect={() => handleCommand("profile")}>
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-              <CommandShortcut>⌘P</CommandShortcut>
-            </CommandItem>
-            <CommandItem onSelect={() => handleCommand("billing")}>
-              <CreditCard className="mr-2 h-4 w-4" />
-              <span>Billing</span>
-              <CommandShortcut>⌘B</CommandShortcut>
-            </CommandItem>
-            <CommandItem onSelect={() => handleCommand("settings")}>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-              <CommandShortcut>⌘S</CommandShortcut>
-            </CommandItem>
-          </CommandGroup>
+
           <CommandSeparator />
           <CommandGroup heading="Quick Actions">
-            <CommandItem onSelect={() => handleCommand("add-tag")}>
-              <Hash className="mr-2 h-4 w-4" />
-              <span>Add Tag</span>
-              <CommandShortcut>⌘T</CommandShortcut>
-            </CommandItem>
-            <CommandItem onSelect={() => handleCommand("add-label")}>
-              <Tags className="mr-2 h-4 w-4" />
-              <span>Add Label</span>
-              <CommandShortcut>⌘L</CommandShortcut>
+            <CommandItem
+              onSelect={() => {
+                navigate("/documents/new")
+                setOpen(false)
+              }}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              <span>New Document</span>
+              <CommandShortcut>⌘N</CommandShortcut>
             </CommandItem>
           </CommandGroup>
         </CommandList>

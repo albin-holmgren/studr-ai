@@ -1,5 +1,6 @@
 import { redirect } from "@remix-run/node"
 import { createSupabaseServerClient } from "./supabase.server"
+import { prisma } from "./prisma.server"
 
 export async function requireAuth(request: Request) {
   const response = new Response()
@@ -30,11 +31,11 @@ export async function getUser(request: Request) {
     return { user: null, response }
   }
 
-  const { data: user } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", session.user.id)
-    .single()
+  const user = await prisma.user.findUnique({
+    where: {
+      id: session.user.id
+    }
+  })
 
   return { user, response }
 }

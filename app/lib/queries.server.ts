@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/auth-helpers-remix"
 import type { Database } from "./database.types"
+import { prisma } from "./prisma.server"
 
 export async function getDocuments(request: Request) {
   const response = new Response()
@@ -9,10 +10,21 @@ export async function getDocuments(request: Request) {
     { request, response }
   )
 
-  const { data: documents } = await supabase
-    .from("documents")
-    .select("*")
-    .order("updated_at", { ascending: false })
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session?.user) {
+    return { documents: [], response }
+  }
+
+  const documents = await prisma.document.findMany({
+    where: {
+      userId: session.user.id,
+      isArchived: false
+    },
+    orderBy: {
+      updatedAt: 'desc'
+    }
+  })
 
   return { documents, response }
 }
@@ -25,27 +37,37 @@ export async function getWorkspaces(request: Request) {
     { request, response }
   )
 
-  const { data: workspaces } = await supabase
-    .from("workspaces")
-    .select("*, documents(*)")
-    .order("created_at", { ascending: false })
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session?.user) {
+    return { workspaces: [], response }
+  }
 
-  return { workspaces, response }
+  const documents = await prisma.document.findMany({
+    where: {
+      userId: session.user.id,
+      parentId: null,
+      isArchived: false
+    },
+    include: {
+      children: true
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  })
+
+  return { workspaces: documents, response }
 }
 
 export async function getUserProfile(request: Request, userId: string) {
   const response = new Response()
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { request, response }
-  )
+  
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId
+    }
+  })
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", userId)
-    .single()
-
-  return { profile, response }
+  return { profile: user, response }
 }

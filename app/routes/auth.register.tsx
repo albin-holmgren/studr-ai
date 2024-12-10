@@ -55,6 +55,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: error.message }, { status: 400 })
     }
 
+    // We'll handle the actual user creation in the callback route
     return redirect(data.url, {
       headers: response.headers,
     })
@@ -72,6 +73,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (signUpError) {
     return json({ error: signUpError.message }, { status: 400 })
+  }
+
+  // Create user in the database
+  const { error: dbError } = await supabase
+    .from('users')
+    .insert({
+      id: signUpData.user!.id,
+      email: signUpData.user!.email,
+      name: name,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+
+  if (dbError) {
+    return json({ error: dbError.message }, { status: 400 })
   }
 
   return redirect("/", {

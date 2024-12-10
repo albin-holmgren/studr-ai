@@ -1,77 +1,86 @@
 import * as React from "react"
-import { AppSidebar } from "~/components/app-sidebar"
-import { EmojiPicker } from "~/components/emoji-picker"
-import { NavActions } from "~/components/nav-actions"
-import { SearchCommand } from "~/components/search-command"
+import { AppSidebar } from "./app-sidebar"
+import { EmojiPicker } from "./emoji-picker"
+import { NavActions } from "./nav-actions"
+import { Toaster } from "sonner"
 import {
   Breadcrumb,
-  BreadcrumbInput,
   BreadcrumbItem,
   BreadcrumbList,
-} from "~/components/ui/breadcrumb"
-import { Separator } from "~/components/ui/separator"
+  BreadcrumbInput,
+} from "./ui/breadcrumb"
+import { Separator } from "./ui/separator"
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "~/components/ui/sidebar"
+} from "./ui/sidebar"
+import { TokenUsage } from "./token-usage"
 
 interface LayoutProps {
   children: React.ReactNode
-  title?: string
-  emoji?: string
   onTitleChange?: (title: string) => void
   onEmojiChange?: (emoji: string) => void
   minimal?: boolean
+  user?: {
+    id: string
+    name: string
+    email: string
+    avatar?: string | null
+    subscription: any
+  }
 }
 
-export function Layout({ 
-  children, 
-  title, 
-  emoji = "📄",
-  onTitleChange, 
+export function Layout({
+  children,
+  onTitleChange,
   onEmojiChange,
-  minimal = false 
+  minimal = false,
+  user,
 }: LayoutProps) {
   return (
     <SidebarProvider>
-      <AppSidebar onPageTitleChange={onTitleChange} />
-      <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center">
-          {minimal ? (
-            <div className="px-3">
-              <SidebarTrigger />
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-1 items-center gap-2 px-3">
-                <SidebarTrigger />
-                <Separator orientation="vertical" className="mr-2 h-4" />
-                <Breadcrumb>
-                  <BreadcrumbList>
-                    <BreadcrumbItem className="flex items-center gap-2">
-                      <EmojiPicker value={emoji} onChange={onEmojiChange} />
-                      <BreadcrumbInput 
-                        value={title} 
-                        onChange={onTitleChange}
-                      />
-                    </BreadcrumbItem>
-                  </BreadcrumbList>
-                </Breadcrumb>
-              </div>
-              <div className="ml-auto px-3">
+      <div className="grid h-screen w-full grid-cols-[16rem,1fr]">
+        <AppSidebar user={user} onPageTitleChange={onTitleChange} />
+        <SidebarInset className="w-full">
+          <div className="flex h-full w-full flex-col">
+            {!minimal && (
+              <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background px-4">
+                <div className="flex items-center gap-4">
+                  <SidebarTrigger />
+                  <div className="flex items-center gap-2">
+                    <EmojiPicker emoji={undefined} onEmojiSelect={onEmojiChange} />
+                    <Separator orientation="vertical" className="h-6" />
+                    <Breadcrumb>
+                      <BreadcrumbList>
+                        <BreadcrumbItem>
+                          <BreadcrumbInput
+                            value=""
+                            onChange={onTitleChange}
+                            placeholder="Untitled"
+                          />
+                        </BreadcrumbItem>
+                      </BreadcrumbList>
+                    </Breadcrumb>
+                  </div>
+                </div>
                 <NavActions />
+              </header>
+            )}
+            {minimal && (
+              <div className="absolute left-4 top-4 z-10">
+                <SidebarTrigger />
               </div>
-            </>
-          )}
-        </header>
-        <div className="flex flex-1 flex-col gap-4 px-4 py-10">
-          <div className="mx-auto w-full max-w-3xl">
-            <SearchCommand />
-            {children}
+            )}
+            <main className="flex-1 overflow-auto">
+              <div className="mx-auto w-full max-w-[1200px] px-8 py-8">
+                {children}
+              </div>
+            </main>
           </div>
-        </div>
-      </SidebarInset>
+        </SidebarInset>
+      </div>
+      <Toaster position="bottom-right" />
     </SidebarProvider>
   )
 }

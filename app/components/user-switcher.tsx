@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useNavigate, useLoaderData } from "@remix-run/react"
+import { useNavigate } from "@remix-run/react"
 import {
   BadgeCheck,
   Bell,
@@ -32,17 +32,27 @@ import {
   useSidebar,
 } from "~/components/ui/sidebar"
 
-export function UserSwitcher() {
+export function UserSwitcher({
+  user = {
+    name: "John Doe",
+    email: "john@example.com",
+    avatar: "https://github.com/shadcn.png",
+  },
+}: {
+  user?: {
+    name: string
+    email: string
+    avatar?: string | null
+    avatarUrl?: string | null
+  }
+}) {
   const { isMobile } = useSidebar()
   const [upgradeOpen, setUpgradeOpen] = React.useState(false)
   const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [activeSection, setActiveSection] = React.useState("account")
-  const data = useLoaderData()
-  const user = data?.user || {
-    name: "User",
-    email: "",
-    avatar: null,
-  }
+  const navigate = useNavigate()
+
+  const avatarSrc = user?.avatar || user?.avatarUrl
 
   const openNotificationSettings = () => {
     setActiveSection("notifications")
@@ -66,23 +76,23 @@ export function UserSwitcher() {
                 className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={avatarSrc || ""} alt={user?.name} />
                   <AvatarFallback className="rounded-lg">
-                    {user.name
+                    {user?.name
                       .split(" ")
                       .map((n) => n[0])
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-semibold">{user?.name}</span>
+                  <span className="truncate text-xs">{user?.email}</span>
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+              className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg bg-white"
               side={isMobile ? "bottom" : "right"}
               align="start"
               sideOffset={4}
@@ -90,17 +100,17 @@ export function UserSwitcher() {
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarImage src={avatarSrc || ""} alt={user?.name} />
                     <AvatarFallback className="rounded-lg">
-                      {user.name
+                      {user?.name
                         .split(" ")
                         .map((n) => n[0])
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{user.name}</span>
-                    <span className="truncate text-xs">{user.email}</span>
+                    <span className="truncate font-semibold">{user?.name}</span>
+                    <span className="truncate text-xs">{user?.email}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
