@@ -1,5 +1,5 @@
-import { redirect, json, type LoaderFunctionArgs } from "@remix-run/node"
-import { useOutletContext, useLoaderData } from "@remix-run/react"
+import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node"
+import { useLoaderData, useOutletContext, useFetcher } from "@remix-run/react"
 import type { SupabaseClient, User } from "@supabase/supabase-js"
 import { createServerClient } from "@supabase/auth-helpers-remix"
 import { NavActions } from "~/components/nav-actions"
@@ -17,6 +17,7 @@ import {
 } from "~/components/ui/sidebar"
 import { usePageTitle } from "~/components/page-title-context"
 import { Note } from "~/components/note"
+import { db } from "~/lib/db.server"
 
 type ContextType = {
   supabase: SupabaseClient
@@ -39,7 +40,12 @@ type ContextType = {
   }>
 }
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+export const loader = async ({ request, params }: LoaderFunctionArgs) => {
+  const { noteId } = params
+  if (!noteId) {
+    return redirect("/")
+  }
+
   const response = new Response()
 
   const supabase = createServerClient(
@@ -58,11 +64,25 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     })
   }
 
+  // Fetch the note
+  const note = await db.note.findUnique({
+    where: {
+      id: noteId,
+    },
+    include: {
+      workspace: true,
+    },
+  })
+
+  if (!note) {
+    return redirect("/")
+  }
+
   return json(
     {
+      note,
       session,
       user: session.user,
-      workspaces: []  // We'll fetch workspaces later
     },
     {
       headers: response.headers,
@@ -70,14 +90,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   )
 }
 
-export default function Index() {
-  const { session } = useLoaderData<typeof loader>()
-  const { supabase, user, workspaces } = useOutletContext<ContextType>()
+export default function NotePage() {
+  const { note } = useLoaderData<typeof loader>()
+  const { supabase, workspaces } = useOutletContext<ContextType>()
   const { title } = usePageTitle()
-
-  if (!session) {
-    return null
-  }
+  const fetcher = useFetcher()
 
   return (
     <SidebarProvider defaultOpen>
@@ -92,7 +109,7 @@ export default function Index() {
                 <BreadcrumbList>
                   <BreadcrumbItem>
                     <BreadcrumbPage className="line-clamp-1">
-                      {title}
+                      {note.title}
                     </BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
@@ -104,9 +121,12 @@ export default function Index() {
           </header>
           <main className="flex-1 overflow-y-auto">
             <Note 
-              initialContent="<h1>Welcome to Studr</h1><p>Start typing or press / for commands...</p>"
+              initialContent={note.content || "<h1>" + note.title + "</h1><p>Start typing or press / for commands...</p>"}
               onSave={(content) => {
-                console.log('Saving:', content)
+                fetcher.submit(
+                  { noteId: note.id, content },
+                  { method: "post", action: "/api/note/update" }
+                )
               }}
             />
           </main>
