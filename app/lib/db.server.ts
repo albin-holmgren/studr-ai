@@ -10,14 +10,26 @@ declare global {
 // the server with every change, but we want to make sure we don't
 // create a new connection to the DB with every change either.
 if (process.env.NODE_ENV === "production") {
-  prisma = new PrismaClient();
+  prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.POSTGRES_URL_NON_POOLING
+      }
+    }
+  });
 } else {
   if (!global.__db__) {
     global.__db__ = new PrismaClient({
-      log: ['query'],
+      datasources: {
+        db: {
+          url: process.env.POSTGRES_URL_NON_POOLING
+        }
+      }
     });
   }
   prisma = global.__db__;
 }
 
-export { prisma };
+export const db = prisma;
+
+export { PrismaClient };

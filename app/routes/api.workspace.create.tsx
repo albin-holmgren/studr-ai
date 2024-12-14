@@ -12,8 +12,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const response = new Response()
   const supabase = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { request, response }
   )
 
@@ -34,9 +34,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     })
 
     if (!user) {
+      console.error("User not found:", session.user.email)
       return json({ error: "User not found" }, { status: 404 })
     }
 
+    console.log("Creating workspace for user:", user.id)
     const workspace = await db.workspace.create({
       data: {
         name,
@@ -47,12 +49,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         notes: true
       }
     })
+    console.log("Workspace created:", workspace)
 
     return json({ workspace }, {
       headers: response.headers,
     })
   } catch (error) {
     console.error("Error creating workspace:", error)
+    if (error instanceof Error) {
+      return json(
+        { error: error.message },
+        { status: 500 }
+      )
+    }
     return json(
       { error: "Failed to create workspace" },
       { status: 500 }

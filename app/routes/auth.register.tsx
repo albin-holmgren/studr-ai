@@ -4,6 +4,8 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node"
 import { Form, Link, useActionData, useNavigation } from "@remix-run/react"
 import { createServerClient } from "@supabase/auth-helpers-remix"
 
+import { db } from "~/lib/db.server"
+
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
@@ -75,19 +77,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ error: signUpError.message }, { status: 400 })
   }
 
-  // Create user in the database
-  const { error: dbError } = await supabase
-    .from('users')
-    .insert({
-      id: signUpData.user!.id,
-      email: signUpData.user!.email,
-      name: name,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+  // Create user in Prisma database
+  try {
+    const user = await db.user.create({
+      data: {
+        email: signUpData.user!.email!,
+        name: name,
+        workspaces: {
+          create: {
+            name: "My Workspace",
+            emoji: "📝",
+          }
+        }
+      },
     })
-
-  if (dbError) {
-    return json({ error: dbError.message }, { status: 400 })
+  } catch (dbError) {
+    console.error("Database error:", dbError)
+    return json({ error: "Failed to create user profile" }, { status: 400 })
   }
 
   return redirect("/", {

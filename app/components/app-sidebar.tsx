@@ -1,6 +1,7 @@
 import * as React from "react"
-import { useNavigate } from "@remix-run/react"
+import { useNavigate, useOutletContext } from "@remix-run/react"
 import { useFetcher } from "@remix-run/react"
+import type { User } from "@supabase/supabase-js"
 import {
   Archive,
   AudioWaveform,
@@ -37,6 +38,18 @@ import {
 } from "~/components/ui/sidebar"
 import { SearchCommand } from "~/components/search-command"
 
+type ContextType = {
+  supabase: any
+  user: {
+    id: string
+    email: string
+    name: string | null
+    avatar: string | null
+  } | null
+  session: { user: User } | null
+  workspaces: any[]
+}
+
 // This is sample data.
 const data = {
   teams: [
@@ -64,12 +77,12 @@ const data = {
     },
     {
       title: "Ask AI",
-      url: "#",
+      url: "/ai",
       icon: Sparkles,
     },
     {
       title: "Home",
-      url: "#",
+      url: "/",
       icon: Home,
       isActive: true,
     },
@@ -268,15 +281,23 @@ export function AppSidebar({
     emoji: string
     createdAt: string
     updatedAt: string
+    notes?: {
+      id: string
+      title: string
+      createdAt: string
+      updatedAt: string
+    }[]
   }[]
 }) {
   const [open, setOpen] = React.useState(false)
+  const { user } = useOutletContext<ContextType>()
   const fetcher = useFetcher<{
     results: Array<{
       id: string
       title: string
       content: string
       workspace: string
+      emoji?: string
     }>
   }>()
   const navigate = useNavigate()
@@ -297,6 +318,7 @@ export function AppSidebar({
     title: string
     content: string
     workspace: string
+    emoji?: string
   }>
 
   const runSearch = React.useCallback(
@@ -313,12 +335,14 @@ export function AppSidebar({
         <SidebarHeader>
           <NavUser
             user={{
-              name: "John Doe",
-              email: "john@example.com",
-              avatar: "https://github.com/shadcn.png",
+              name: user?.name || user?.email?.split('@')[0] || 'Anonymous',
+              email: user?.email || '',
+              avatar: user?.avatar || ''
             }}
           />
-          <NavMain items={data.navMain} onSearchClick={() => setOpen(true)} />
+          <div className="mt-4">
+            <NavMain items={data.navMain} onSearchClick={() => setOpen(true)} />
+          </div>
         </SidebarHeader>
         <SidebarContent>
           <NavFavorites favorites={data.favorites} />

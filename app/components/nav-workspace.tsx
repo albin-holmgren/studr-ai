@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/u
 import { Input } from "~/components/ui/input"
 import { Button } from "~/components/ui/button"
 import { useState } from "react"
-import { useNavigation, useFetcher, Link } from "@remix-run/react"
+import { useNavigation, useFetcher, Link, useLoaderData } from "@remix-run/react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,7 +75,10 @@ export function NavWorkspace({
   const handleCreateWorkspace = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    workspaceFetcher.submit(formData, { method: "post", action: "/api/workspace/create" })
+    workspaceFetcher.submit(formData, { 
+      method: "post", 
+      action: "/api/workspace/create",
+    })
     setIsOpen(false)
   }
 
@@ -104,7 +107,9 @@ export function NavWorkspace({
           <DialogHeader>
             <DialogTitle>Create New Workspace</DialogTitle>
           </DialogHeader>
-          <form 
+          <workspaceFetcher.Form 
+            action="/api/workspace/create"
+            method="post"
             onSubmit={handleCreateWorkspace}
             className="space-y-4"
           >
@@ -132,13 +137,13 @@ export function NavWorkspace({
                 Create
               </Button>
             </div>
-          </form>
+          </workspaceFetcher.Form>
         </DialogContent>
       </Dialog>
 
       <SidebarGroupContent>
         <SidebarMenu>
-          {workspaces.map((workspace) => (
+          {workspaces?.map((workspace) => (
             <Collapsible key={workspace.id}>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>

@@ -8,6 +8,7 @@ import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Separator } from "~/components/ui/separator"
+import { db } from "~/lib/db.server"
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const response = new Response()
@@ -67,6 +68,32 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (error) {
     return json({ error: error.message }, { status: 400 })
+  }
+
+  // Create or update user in Prisma database
+  try {
+    const user = await db.user.upsert({
+      where: { email: data.user.email! },
+      update: {
+        name: data.user.user_metadata.name || data.user.email?.split('@')[0],
+        avatar: data.user.user_metadata.avatar_url,
+        updatedAt: new Date(),
+      },
+      create: {
+        email: data.user.email!,
+        name: data.user.user_metadata.name || data.user.email?.split('@')[0],
+        avatar: data.user.user_metadata.avatar_url,
+        workspaces: {
+          create: {
+            name: "My Workspace",
+            emoji: "📝",
+          }
+        }
+      },
+    })
+  } catch (dbError) {
+    console.error("Database error:", dbError)
+    return json({ error: "Failed to create user profile" }, { status: 500 })
   }
 
   return redirect("/", {

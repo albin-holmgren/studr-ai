@@ -1,8 +1,9 @@
+import * as React from "react"
 import { json, type LoaderFunctionArgs } from "@remix-run/node"
 import { Outlet, useLoaderData } from "@remix-run/react"
 import { createServerClient } from "@supabase/auth-helpers-remix"
 import { db } from "~/lib/db.server"
-import { AppSidebar } from "~/components/app-sidebar"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const response = new Response()
@@ -24,11 +25,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     where: { email: session.user.email! },
     include: {
       workspaces: {
-        include: {
-          notes: {
-            orderBy: { createdAt: "desc" }
-          }
-        },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -46,36 +42,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   )
 }
 
-export default function App() {
+export default function AIRoute() {
   const data = useLoaderData<typeof loader>()
   
   if ('error' in data) {
     return <div>Error: {data.error}</div>
   }
 
-  // Transform workspaces to match required type
-  const workspaces = data.user.workspaces.map(workspace => {
-    const createdAt = typeof workspace.createdAt === 'string' ? workspace.createdAt : new Date(workspace.createdAt).toISOString()
-    const updatedAt = typeof workspace.updatedAt === 'string' ? workspace.updatedAt : new Date(workspace.updatedAt).toISOString()
-    
-    return {
-      ...workspace,
-      emoji: workspace.emoji || "📝",
-      createdAt,
-      updatedAt,
-      notes: workspace.notes?.map(note => ({
-        ...note,
-        createdAt: typeof note.createdAt === 'string' ? note.createdAt : new Date(note.createdAt).toISOString(),
-        updatedAt: typeof note.updatedAt === 'string' ? note.updatedAt : new Date(note.updatedAt).toISOString()
-      }))
-    }
-  })
-
   return (
     <div className="flex h-screen">
-      <AppSidebar workspaces={workspaces} />
-      <main className="flex-1">
-        <Outlet />
+      <main className="flex-1 p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Assistant</CardTitle>
+            <CardDescription>Your personal AI assistant powered by Codeium</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col space-y-4">
+              <Outlet />
+            </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   )

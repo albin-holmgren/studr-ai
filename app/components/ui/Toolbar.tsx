@@ -4,6 +4,11 @@ import React from 'react'
 interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {}
 interface ToolbarButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
 
+type ToolbarComponent = React.ForwardRefExoticComponent<ToolbarProps & React.RefAttributes<HTMLDivElement>> & {
+  Button: React.ForwardRefExoticComponent<ToolbarButtonProps & React.RefAttributes<HTMLButtonElement>>
+  Divider: () => JSX.Element
+}
+
 const Toolbar = React.forwardRef<HTMLDivElement, ToolbarProps>(
   ({ className, ...props }, ref) => {
     return (
@@ -14,7 +19,7 @@ const Toolbar = React.forwardRef<HTMLDivElement, ToolbarProps>(
       />
     )
   }
-)
+) as ToolbarComponent
 
 const ToolbarButton = React.forwardRef<HTMLButtonElement, ToolbarButtonProps>(
   ({ className, ...props }, ref) => {

@@ -6,14 +6,16 @@ import {
   ScrollRestoration,
   useLoaderData,
   useRevalidator,
+  LiveReload,
 } from "@remix-run/react";
 import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { createBrowserClient } from "@supabase/auth-helpers-remix";
 import { useEffect, useState } from "react";
 import { createServerClient } from "@supabase/auth-helpers-remix";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { PageTitleProvider } from "./components/page-title-context";
+import { SidebarProvider } from "~/components/ui/sidebar";
 
 import "./tailwind.css";
 import "./styles/editor.css";
@@ -33,8 +35,8 @@ export const links: LinksFunction = () => [
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const env = {
-    SUPABASE_URL: process.env.SUPABASE_URL!,
-    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY!,
+    SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   };
 
   const response = new Response();
@@ -47,45 +49,58 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     data: { session },
   } = await supabase.auth.getSession();
 
-  let workspaces = []
-  let user = null
+  let user = null;
+  let workspaces: {
+    id: string
+    name: string
+    emoji: string
+    createdAt: string
+    updatedAt: string
+    notes?: {
+      id: string
+      title: string
+      createdAt: string
+      updatedAt: string
+    }[]
+  }[] = [];
   
-  if (session) {
-    user = await prisma.user.findUnique({
-      where: { email: session.user.email! },
+  if (session?.user?.email) {
+    user = await db.user.findUnique({
+      where: { email: session.user.email },
       include: {
         workspaces: {
+          orderBy: { createdAt: "desc" },
           include: {
             notes: {
-              orderBy: {
-                updatedAt: 'desc'
-              }
+              orderBy: { createdAt: "desc" }
             }
-          },
-          orderBy: {
-            updatedAt: 'desc'
           }
-        }
-      }
+        },
+      },
     });
 
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          email: session.user.email!,
-          name: session.user.user_metadata.full_name || session.user.email,
-        },
-        include: {
-          workspaces: true
-        }
-      });
+    if (user) {
+      workspaces = user.workspaces.map(workspace => ({
+        ...workspace,
+        emoji: workspace.emoji || "📝", // Provide default emoji
+        createdAt: workspace.createdAt.toISOString(),
+        updatedAt: workspace.updatedAt.toISOString(),
+        notes: workspace.notes?.map(note => ({
+          ...note,
+          createdAt: note.createdAt.toISOString(),
+          updatedAt: note.updatedAt.toISOString()
+        }))
+      }));
     }
-
-    workspaces = user.workspaces
   }
 
   return json(
-    { env, workspaces, user, session },
+    {
+      env,
+      user,
+      session,
+      workspaces
+    },
     {
       headers: response.headers,
     }
@@ -95,7 +110,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 let browserSupabase: ReturnType<typeof createBrowserClient> | null = null;
 
 export default function App() {
-  const { env, workspaces, user, session } = useLoaderData<typeof loader>();
+  const { env, user, session, workspaces } = useLoaderData<typeof loader>();
   const revalidator = useRevalidator();
   
   const [supabase] = useState(() => {
@@ -118,19 +133,22 @@ export default function App() {
   }, [supabase, revalidator]);
 
   return (
-    <html lang="en">
+    <html lang="en" className="h-full">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="h-full">
         <PageTitleProvider>
-          <Outlet context={{ supabase, workspaces, user, session }} />
+          <SidebarProvider>
+            <Outlet context={{ supabase, user, session, workspaces }} />
+          </SidebarProvider>
         </PageTitleProvider>
         <ScrollRestoration />
         <Scripts />
+        <LiveReload />
       </body>
     </html>
   );
