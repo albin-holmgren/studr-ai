@@ -16,9 +16,9 @@ import { createServerClient } from "@supabase/auth-helpers-remix";
 import { db } from "~/lib/db.server";
 import { PageTitleProvider } from "./components/page-title-context";
 import { SidebarProvider } from "~/components/ui/sidebar";
+import { Toaster } from "sonner";
 
 import "./tailwind.css";
-import "./styles/editor.css";
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -146,6 +146,7 @@ export default function App() {
             <Outlet context={{ supabase, user, session, workspaces }} />
           </SidebarProvider>
         </PageTitleProvider>
+        <Toaster position="bottom-right" />
         <ScrollRestoration />
         <Scripts />
         <LiveReload />

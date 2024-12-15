@@ -18,6 +18,14 @@ model User {
   email         String    @unique
   name          String?
   avatar        String?
+  language      String?   @default("en")
+  region        String?   @default("US")
+  stripeCustomerId String?
+  subscriptionStatus String? @default("free")
+  subscriptionTier  String? @default("free")
+  subscriptionPeriodEnd DateTime?
+  paymentMethods PaymentMethod[]
+  payments      Payment[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   workspaces    Workspace[]
@@ -46,4 +54,29 @@ model Note {
   updatedAt   DateTime  @updatedAt
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PaymentMethod {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripePaymentMethodId String
+  last4         String
+  brand         String
+  expMonth      Int
+  expYear       Int
+  isDefault     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Float
+  currency      String
+  status        String
+  stripeInvoiceId String?
+  createdAt     DateTime  @default(now())
 }

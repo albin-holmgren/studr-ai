@@ -31,12 +31,12 @@ import {
   CommandItem,
   CommandList,
 } from "~/components/ui/command"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-} from "~/components/ui/sidebar"
+import { Sidebar, SidebarContent, SidebarHeader } from "~/components/ui/sidebar"
 import { SearchCommand } from "~/components/search-command"
+import SettingsPopup from "./settings-popup"
+import { ArchivePopup } from "~/components/archive-popup"
+import { InboxDrawer } from "~/components/inbox-drawer"
+import TokenUsage from "./token-usage"
 
 type ContextType = {
   supabase: any
@@ -96,7 +96,7 @@ const data = {
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/settings",
       icon: Settings2,
     },
     {
@@ -290,6 +290,9 @@ export function AppSidebar({
   }[]
 }) {
   const [open, setOpen] = React.useState(false)
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
+  const [archiveOpen, setArchiveOpen] = React.useState(false)
+  const [inboxOpen, setInboxOpen] = React.useState(false)
   const { user } = useOutletContext<ContextType>()
   const fetcher = useFetcher<{
     results: Array<{
@@ -300,6 +303,7 @@ export function AppSidebar({
       emoji?: string
     }>
   }>()
+  const archiveFetcher = useFetcher()
   const navigate = useNavigate()
 
   React.useEffect(() => {
@@ -312,6 +316,21 @@ export function AppSidebar({
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
   }, [])
+
+  // Load archived notes when archive popup opens
+  React.useEffect(() => {
+    if (archiveOpen) {
+      archiveFetcher.load("/api/notes/archived");
+    }
+  }, [archiveOpen]);
+
+  // Handle note restoration
+  const handleRestoreNote = React.useCallback((noteId: string) => {
+    archiveFetcher.submit(
+      { noteId },
+      { method: "POST", action: "/api/notes/restore" }
+    );
+  }, []);
 
   const results = (fetcher.data?.results || []) as Array<{
     id: string
@@ -329,6 +348,17 @@ export function AppSidebar({
     [fetcher]
   )
 
+  const navMainItems = React.useMemo(() => {
+    return data.navMain.map(item => ({
+      ...item,
+      onClick: item.title === "Search" 
+        ? () => setOpen(true)
+        : item.title === "Inbox"
+        ? () => setInboxOpen(true)
+        : undefined
+    }));
+  }, []);
+
   return (
     <>
       <Sidebar className="border-r-0" {...props}>
@@ -341,13 +371,30 @@ export function AppSidebar({
             }}
           />
           <div className="mt-4">
-            <NavMain items={data.navMain} onSearchClick={() => setOpen(true)} />
+            <NavMain items={navMainItems} onSearchClick={() => setOpen(true)} />
           </div>
         </SidebarHeader>
-        <SidebarContent>
-          <NavFavorites favorites={data.favorites} />
-          <NavWorkspace workspaces={workspaces} />
-          <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <SidebarContent className="flex flex-col h-full">
+          <div className="flex-1">
+            <NavFavorites favorites={data.favorites} />
+            <NavWorkspace workspaces={workspaces} />
+            <NavSecondary 
+              items={data.navSecondary.map(item => ({
+                ...item,
+                onClick: item.title === "Settings" 
+                  ? () => setSettingsOpen(true) 
+                  : item.title === "Archive"
+                  ? () => setArchiveOpen(true)
+                  : item.title === "Inbox"
+                  ? () => setInboxOpen(true)
+                  : undefined
+              }))} 
+              className="mt-auto" 
+            />
+          </div>
+          <div className="sticky bottom-0 z-10">
+            <TokenUsage totalTokens={10000} usedTokens={7500} />
+          </div>
         </SidebarContent>
       </Sidebar>
 
@@ -385,6 +432,20 @@ export function AppSidebar({
           )}
         </CommandList>
       </CommandDialog>
+
+      <SettingsPopup open={settingsOpen} onOpenChange={setSettingsOpen} />
+      
+      <ArchivePopup 
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        archivedNotes={archiveFetcher.data?.notes || []}
+        onRestoreNote={handleRestoreNote}
+      />
+
+      <InboxDrawer
+        open={inboxOpen}
+        onOpenChange={setInboxOpen}
+      />
     </>
   )
 }
