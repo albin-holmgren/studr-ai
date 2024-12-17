@@ -1,10 +1,5 @@
-import {
-  ArrowUpRight,
-  Link,
-  MoreHorizontal,
-  StarOff,
-  Trash2,
-} from "lucide-react"
+import { ArrowUpRight, Link, MoreHorizontal, Star, Trash2 } from "lucide-react"
+import { Link as RouterLink } from "@remix-run/react"
 
 import {
   DropdownMenu,
@@ -22,29 +17,25 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "~/components/ui/sidebar"
+import { useFavorites } from "~/hooks/use-favorites"
 
-export function NavFavorites({
-  favorites,
-}: {
-  favorites: {
-    name: string
-    url: string
-    emoji: string
-  }[]
-}) {
+export function NavFavorites() {
   const { isMobile } = useSidebar()
+  const { favorites, removeFavorite } = useFavorites()
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Favorites</SidebarGroupLabel>
       <SidebarMenu>
         {favorites.map((item) => (
-          <SidebarMenuItem key={item.name}>
+          <SidebarMenuItem key={item.id}>
             <SidebarMenuButton asChild>
-              <a href={item.url} title={item.name}>
-                <span>{item.emoji}</span>
-                <span>{item.name}</span>
-              </a>
+              <RouterLink to={`/${item.workspaceId}/${item.id}`} title={item.title}>
+                <div className="flex items-center gap-2">
+                  <span className="text-base">{item.emoji || "📄"}</span>
+                  <span>{item.title}</span>
+                </div>
+              </RouterLink>
             </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -58,34 +49,21 @@ export function NavFavorites({
                 side={isMobile ? "bottom" : "right"}
                 align={isMobile ? "end" : "start"}
               >
-                <DropdownMenuItem>
-                  <StarOff className="text-muted-foreground" />
+                <DropdownMenuItem onClick={() => removeFavorite(item.id)}>
+                  <Star className="text-muted-foreground" />
                   <span>Remove from Favorites</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Link className="text-muted-foreground" />
-                  <span>Copy Link</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <ArrowUpRight className="text-muted-foreground" />
-                  <span>Open in New Tab</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Trash2 className="text-muted-foreground" />
-                  <span>Delete</span>
+                <DropdownMenuItem asChild>
+                  <RouterLink to={`/${item.workspaceId}/${item.id}`} target="_blank">
+                    <ArrowUpRight className="text-muted-foreground" />
+                    <span>Open in New Tab</span>
+                  </RouterLink>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
         ))}
-        <SidebarMenuItem>
-          <SidebarMenuButton className="text-sidebar-foreground/70">
-            <MoreHorizontal />
-            <span>More</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   )

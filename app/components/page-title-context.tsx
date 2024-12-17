@@ -5,7 +5,7 @@ interface PageTitleContextType {
   setTitle: (title: string) => void
 }
 
-const PageTitleContext = createContext<PageTitleContextType | undefined>(undefined)
+export const PageTitleContext = createContext<PageTitleContextType | undefined>(undefined)
 
 export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [title, setTitle] = useState("Home")

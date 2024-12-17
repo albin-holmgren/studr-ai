@@ -6,7 +6,6 @@ import {
   ScrollRestoration,
   useLoaderData,
   useRevalidator,
-  LiveReload,
 } from "@remix-run/react";
 import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
@@ -132,6 +131,27 @@ export default function App() {
     };
   }, [supabase, revalidator]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel("db-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+        },
+        () => {
+          // Revalidate all routes when database changes
+          revalidator.revalidate()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
+  }, [env.SUPABASE_URL, env.SUPABASE_ANON_KEY, revalidator, supabase])
+
   return (
     <html lang="en" className="h-full">
       <head>
@@ -139,6 +159,10 @@ export default function App() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <link
+          href="https://cdn.jsdelivr.net/npm/emoji-picker-react@4.7.12/dist/main.css"
+          rel="stylesheet"
+        />
       </head>
       <body className="h-full">
         <PageTitleProvider>
@@ -149,7 +173,14 @@ export default function App() {
         <Toaster position="bottom-right" />
         <ScrollRestoration />
         <Scripts />
-        <LiveReload />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.ENV = ${JSON.stringify({
+              NEXT_PUBLIC_SUPABASE_URL: env.SUPABASE_URL,
+              NEXT_PUBLIC_SUPABASE_ANON_KEY: env.SUPABASE_ANON_KEY,
+            })}`,
+          }}
+        />
       </body>
     </html>
   );

@@ -1,3 +1,4 @@
+import React from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
@@ -20,6 +21,7 @@ import Link from '@tiptap/extension-link'
 import HorizontalRule from '@tiptap/extension-horizontal-rule'
 import ListItem from '@tiptap/extension-list-item'
 import Underline from '@tiptap/extension-underline'
+import { useFetcher } from '@remix-run/react'
 import { cn } from '~/lib/utils'
 import {
   Bold,
@@ -111,12 +113,10 @@ export function TiptapEditor({ content = '', onChange, className }: TiptapEditor
         HTMLAttributes: {
           class: 'flex items-start my-4',
         },
-        nested: true,
       }),
-      CodeBlock.configure({
-        HTMLAttributes: {
-          class: 'rounded-md bg-gray-200 p-5 font-mono font-medium text-gray-900',
-        },
+      CodeBlock,
+      Placeholder.configure({
+        placeholder: 'Start writing...',
       }),
       Typography,
       TextAlign.configure({
@@ -125,27 +125,15 @@ export function TiptapEditor({ content = '', onChange, className }: TiptapEditor
       TextStyle,
       Color,
       FontFamily,
-      Highlight.configure({
-        multicolor: true,
-      }),
-      Image.configure({
-        inline: true,
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-blue-500 underline cursor-pointer',
-        },
-      }),
+      Highlight,
+      Image,
+      Link,
       HorizontalRule,
-      Placeholder.configure({
-        placeholder: 'Press "/" for commands...',
-      }),
     ],
     content,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose-base dark:prose-invert focus:outline-none max-w-full',
+        class: 'prose prose-sm sm:prose-base lg:prose-lg dark:prose-invert focus:outline-none',
       },
     },
     onUpdate: ({ editor }) => {
@@ -158,9 +146,47 @@ export function TiptapEditor({ content = '', onChange, className }: TiptapEditor
   }
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      <EditorToolbar editor={editor} />
-      <EditorContent editor={editor} className="prose max-w-none" />
+    <div className={cn("flex flex-col h-full", className)}>
+      <EditorToolbar editor={editor} className="border-b" />
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="h-full px-4 py-4">
+          <EditorContent editor={editor} className="h-full" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface NoteEditorProps {
+  initialContent?: string
+  noteId: string
+  className?: string
+}
+
+export function NoteEditor({ initialContent = '', noteId, className }: NoteEditorProps) {
+  const [content, setContent] = React.useState(initialContent)
+  const fetcher = useFetcher()
+
+  const handleChange = (newContent: string) => {
+    setContent(newContent)
+    
+    // Debounce the API call
+    const formData = new FormData()
+    formData.append('noteId', noteId)
+    formData.append('content', newContent)
+    
+    fetcher.submit(formData, {
+      method: 'post',
+      action: '/api/note/update'
+    })
+  }
+
+  return (
+    <div className={cn("flex flex-col h-full", className)}>
+      <TiptapEditor 
+        content={content} 
+        onChange={handleChange}
+      />
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useNavigate, useOutletContext } from "@remix-run/react"
+import { useNavigate } from "@remix-run/react"
 import { useFetcher } from "@remix-run/react"
 import type { User } from "@supabase/supabase-js"
 import {
@@ -38,16 +38,28 @@ import { ArchivePopup } from "~/components/archive-popup"
 import { InboxDrawer } from "~/components/inbox-drawer"
 import TokenUsage from "./token-usage"
 
-type ContextType = {
-  supabase: any
+type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
+  workspaces: {
+    id: string
+    name: string
+    emoji: string
+    createdAt: string
+    updatedAt: string
+    notes?: {
+      id: string
+      title: string
+      createdAt: string
+      updatedAt: string
+    }[]
+  }[]
   user: {
     id: string
     email: string
     name: string | null
     avatar: string | null
-  } | null
+  }
   session: { user: User } | null
-  workspaces: any[]
+  supabase: any
 }
 
 // This is sample data.
@@ -273,27 +285,16 @@ const data = {
 
 export function AppSidebar({
   workspaces,
+  user,
+  session,
+  supabase,
   ...props
-}: React.ComponentProps<typeof Sidebar> & {
-  workspaces: {
-    id: string
-    name: string
-    emoji: string
-    createdAt: string
-    updatedAt: string
-    notes?: {
-      id: string
-      title: string
-      createdAt: string
-      updatedAt: string
-    }[]
-  }[]
-}) {
+}: AppSidebarProps) {
   const [open, setOpen] = React.useState(false)
   const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [archiveOpen, setArchiveOpen] = React.useState(false)
   const [inboxOpen, setInboxOpen] = React.useState(false)
-  const { user } = useOutletContext<ContextType>()
+  const navigate = useNavigate()
   const fetcher = useFetcher<{
     results: Array<{
       id: string
@@ -304,7 +305,13 @@ export function AppSidebar({
     }>
   }>()
   const archiveFetcher = useFetcher()
-  const navigate = useNavigate()
+  const results = (fetcher.data?.results || []) as Array<{
+    id: string
+    title: string
+    content: string
+    workspace: string
+    emoji?: string
+  }>
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -331,14 +338,6 @@ export function AppSidebar({
       { method: "POST", action: "/api/notes/restore" }
     );
   }, []);
-
-  const results = (fetcher.data?.results || []) as Array<{
-    id: string
-    title: string
-    content: string
-    workspace: string
-    emoji?: string
-  }>
 
   const runSearch = React.useCallback(
     (value: string) => {

@@ -1,35 +1,45 @@
 import { ChevronRight, MoreHorizontal, Plus } from "lucide-react"
-
+import { Link, useLocation } from "@remix-run/react"
+import { type Note, type Workspace } from "@prisma/client"
+import { Button } from "~/components/ui/button"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "~/components/ui/collapsible"
 import {
-  SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
+  SidebarMenuButton,
+  SidebarMenuAction,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
 } from "~/components/ui/sidebar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
 import { Input } from "~/components/ui/input"
-import { Button } from "~/components/ui/button"
 import { useState } from "react"
-import { useNavigation, useFetcher, Link, useLoaderData } from "@remix-run/react"
+import { useNavigation, useFetcher, useLoaderData } from "@remix-run/react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { slugify } from "~/lib/utils"
+import { cn } from "~/lib/utils"
+
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+}
 
 export function NavWorkspace({
   workspaces,
@@ -43,22 +53,41 @@ export function NavWorkspace({
     notes?: {
       id: string
       title: string
+      emoji: string
       createdAt: string
       updatedAt: string
     }[]
   }[]
 }) {
-  const [isOpen, setIsOpen] = useState(false)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [editingNoteTitle, setEditingNoteTitle] = useState<string | null>(null)
   const navigation = useNavigation()
   const isSubmitting = navigation.state === "submitting"
   const fetcher = useFetcher()
   const workspaceFetcher = useFetcher()
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set())
+  const pathname = useLocation().pathname
 
   const handleCreateNote = (workspaceId: string) => {
+    const tempId = `temp-${Date.now()}`
+    const optimisticNote = {
+      id: tempId,
+      title: "Untitled",
+      emoji: "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      workspaceId
+    }
+    
+    // Automatically expand the workspace
+    setExpandedWorkspaces(prev => new Set([...prev, workspaceId]))
+    
     fetcher.submit(
       { title: "Untitled", workspaceId },
-      { method: "post", action: "/api/note/create" }
+      { 
+        method: "post", 
+        action: "/api/note/create"
+      }
     )
   }
 
@@ -72,14 +101,59 @@ export function NavWorkspace({
     }
   }
 
-  const handleCreateWorkspace = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    workspaceFetcher.submit(formData, { 
-      method: "post", 
-      action: "/api/workspace/create",
+  const handleCreateWorkspace = () => {
+    const tempId = `temp-${Date.now()}`
+    const optimisticWorkspace = {
+      id: tempId,
+      name: "Untitled Workspace",
+      emoji: "📝",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      notes: []
+    }
+
+    // Automatically expand the new workspace
+    setExpandedWorkspaces(prev => new Set([...prev, tempId]))
+
+    workspaceFetcher.submit(
+      { name: "Untitled Workspace" },
+      { 
+        method: "post", 
+        action: "/api/workspace/create"
+      }
+    )
+  }
+
+  const toggleWorkspace = (workspaceId: string) => {
+    setExpandedWorkspaces(prev => {
+      const next = new Set(prev)
+      if (next.has(workspaceId)) {
+        next.delete(workspaceId)
+      } else {
+        next.add(workspaceId)
+      }
+      return next
     })
-    setIsOpen(false)
+  }
+
+  const handleStartNoteRename = (note: Note) => {
+    setEditingNoteId(note.id)
+    setEditingNoteTitle(note.title)
+  }
+
+  const handleNoteRename = () => {
+    if (editingNoteId && editingNoteTitle) {
+      handleUpdateNoteTitle(editingNoteId, editingNoteTitle)
+    }
+  }
+
+  const handleDeleteNote = (noteId: string) => {
+    if (window.confirm("Are you sure you want to delete this note?")) {
+      fetcher.submit(
+        { noteId },
+        { method: "post", action: "/api/note/delete" }
+      )
+    }
   }
 
   return (
@@ -89,11 +163,11 @@ export function NavWorkspace({
           Workspaces
         </SidebarGroupLabel>
         <div 
-          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-md opacity-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-hover:opacity-100 hover:opacity-100"
+          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-md opacity-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-hover:opacity-100 hover:opacity-100 transition-opacity duration-200"
         >
           <button
             type="button"
-            onClick={() => setIsOpen(true)}
+            onClick={handleCreateWorkspace}
             title="New workspace"
             className="flex h-full w-full items-center justify-center"
           >
@@ -102,55 +176,23 @@ export function NavWorkspace({
         </div>
       </div>
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Workspace</DialogTitle>
-          </DialogHeader>
-          <workspaceFetcher.Form 
-            action="/api/workspace/create"
-            method="post"
-            onSubmit={handleCreateWorkspace}
-            className="space-y-4"
-          >
-            <div>
-              <label htmlFor="name" className="text-sm font-medium">
-                Workspace Name
-              </label>
-              <Input
-                id="name"
-                name="name"
-                placeholder="My Workspace"
-                className="mt-1"
-                required
-              />
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={workspaceFetcher.state === "submitting"}>
-                Create
-              </Button>
-            </div>
-          </workspaceFetcher.Form>
-        </DialogContent>
-      </Dialog>
-
       <SidebarGroupContent>
         <SidebarMenu>
           {workspaces?.map((workspace) => (
-            <Collapsible key={workspace.id}>
+            <Collapsible key={workspace.id} open={expandedWorkspaces.has(workspace.id)} onOpenChange={() => toggleWorkspace(workspace.id)}>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <a href="#">
-                    <span>{workspace.emoji}</span>
-                    <span>{workspace.name}</span>
-                  </a>
+                  <Link
+                    to={`/${workspace.id}`}
+                    className={cn("group flex w-full items-center justify-between gap-1 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50", {
+                      "bg-sidebar-accent": pathname === `/${workspace.id}`,
+                    })}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{workspace.emoji}</span>
+                      <span>{workspace.name}</span>
+                    </div>
+                  </Link>
                 </SidebarMenuButton>
                 <CollapsibleTrigger asChild>
                   <SidebarMenuAction
@@ -166,76 +208,56 @@ export function NavWorkspace({
                 >
                   <Plus />
                 </SidebarMenuAction>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    {(workspace.notes || []).map((note) => (
-                      <SidebarMenuSubItem key={note.id} className="relative hover:bg-sidebar-accent/50 group/note">
-                        <SidebarMenuSubButton asChild>
-                          <Link
-                            to={`/workspace/${slugify(note.title)}/${note.id}`}
-                            className="relative flex items-center gap-2 px-2 py-1 text-sm"
-                          >
-                            <span>📝</span>
-                            {editingNoteId === note.id ? (
-                              <input
-                                type="text"
-                                defaultValue={note.title}
-                                autoFocus
-                                className="bg-transparent outline-none border-none"
-                                onBlur={(e) => handleUpdateNoteTitle(note.id, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleUpdateNoteTitle(note.id, e.currentTarget.value)
-                                  } else if (e.key === 'Escape') {
-                                    setEditingNoteId(null)
-                                  }
-                                }}
-                              />
-                            ) : (
-                              <span>{note.title}</span>
-                            )}
-                          </Link>
-                        </SidebarMenuSubButton>
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover/note:flex items-center">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="h-6 w-6 rounded-sm inline-flex items-center justify-center hover:bg-sidebar-accent">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent 
-                              className="w-36 ml-6 bg-sidebar" 
-                              align="start"
-                              alignOffset={0}
-                              sideOffset={0}
-                            >
-                              <DropdownMenuItem
-                                onClick={() => setEditingNoteId(note.id)}
-                                className="focus:bg-sidebar-accent"
-                              >
-                                Rename
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  if (window.confirm("Are you sure you want to archive this note?")) {
-                                    fetcher.submit(
-                                      { noteId: note.id },
-                                      { method: "post", action: "/api/note/archive" }
-                                    )
-                                  }
-                                }}
-                                className="text-destructive focus:bg-sidebar-accent focus:text-destructive"
-                              >
-                                Archive
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
               </SidebarMenuItem>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  {(workspace.notes || []).map((note) => (
+                    <SidebarMenuSubItem key={note.id} className="relative hover:bg-sidebar-accent/50 group/note">
+                      <SidebarMenuSubButton asChild>
+                        <Link
+                          key={note.id}
+                          to={`/${workspace.id}/${note.id}`}
+                          className="relative flex items-center gap-2 px-2 py-1 text-sm"
+                        >
+                          <span>{note.emoji || "📝"}</span>
+                          {editingNoteId === note.id ? (
+                            <input
+                              type="text"
+                              value={editingNoteTitle}
+                              onChange={(e) => setEditingNoteTitle(e.target.value)}
+                              onBlur={handleNoteRename}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleNoteRename()
+                                }
+                              }}
+                              className="w-full bg-transparent outline-none"
+                              autoFocus
+                            />
+                          ) : (
+                            <span className="line-clamp-1">{note.title}</span>
+                          )}
+                        </Link>
+                      </SidebarMenuSubButton>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <SidebarMenuAction showOnHover>
+                            <MoreHorizontal />
+                          </SidebarMenuAction>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => handleStartNoteRename(note)}>
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDeleteNote(note.id)}>
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </SidebarMenuSubItem>
+                  ))}
+                </SidebarMenuSub>
+              </CollapsibleContent>
             </Collapsible>
           ))}
           <SidebarMenuItem>

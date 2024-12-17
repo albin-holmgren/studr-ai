@@ -93,7 +93,11 @@ export default function Index() {
               </CardTitle>
               <CardDescription>
                 {workspace.notes?.length || 0} documents • Last updated{" "}
-                {new Date(workspace.updatedAt).toLocaleDateString()}
+                {new Date(workspace.updatedAt).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit'
+                })}
               </CardDescription>
             </CardHeader>
           </Card>

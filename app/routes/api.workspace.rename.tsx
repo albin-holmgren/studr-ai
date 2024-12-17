@@ -4,7 +4,13 @@ import { db } from "~/lib/db.server"
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData()
-  const name = formData.get("name") as string || "Untitled Workspace"
+  const workspaceId = formData.get("workspaceId") as string
+  const name = formData.get("name") as string
+  const emoji = formData.get("emoji") as string
+
+  if (!workspaceId || !name) {
+    return json({ error: "Workspace ID and name are required" }, { status: 400 })
+  }
 
   const response = new Response()
   const supabase = createServerClient(
@@ -31,33 +37,39 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       throw new Error("User not found")
     }
 
-    const workspace = await db.workspace.create({
-      data: {
+    // Update workspace name, emoji and verify ownership
+    const workspace = await db.workspace.update({
+      where: {
+        id: workspaceId,
+        userId: user.id // Ensure user owns the workspace
+      },
+      data: { 
         name,
-        emoji: "📝",
-        userId: user.id,
+        emoji: emoji || "📝" // Use default emoji if none provided
       },
       select: {
         id: true,
         name: true,
         emoji: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
+        notes: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        }
       }
     })
 
-    return json({ workspace }, {
-      headers: response.headers,
-    })
+    return json({ workspace }, { headers: response.headers })
   } catch (error) {
-    console.error("Error creating workspace:", error)
+    console.error("Error updating workspace:", error)
     return json(
-      { error: error instanceof Error ? error.message : "Failed to create workspace" },
-      { status: 500 }
+      { error: "Failed to update workspace" },
+      { status: 500, headers: response.headers }
     )
   }
-}
-
-export default function WorkspaceCreate() {
-  return null
 }
