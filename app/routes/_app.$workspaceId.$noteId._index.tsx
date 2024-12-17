@@ -48,6 +48,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
               id: true,
               title: true,
               emoji: true,
+              purpose: true,
               createdAt: true,
               updatedAt: true
             },
@@ -70,7 +71,19 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       userId: user.id,
     },
     include: {
-      workspace: true
+      workspace: true,
+      gradingCriteria: {
+        select: {
+          id: true,
+          fileName: true,
+          fileUrl: true,
+          fileType: true,
+          createdAt: true
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      }
     }
   })
 
@@ -96,7 +109,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 }
 
 export default function NotePage() {
-  const { note } = useLoaderData<typeof loader>()
+  const { note, user } = useLoaderData<typeof loader>()
   const { setTitle } = usePageTitle()
   const revalidator = useRevalidator()
 
@@ -128,7 +141,14 @@ export default function NotePage() {
           documentId={note.id}
           documentTitle={note.title}
           documentEmoji={note.emoji}
+          documentPurpose={note.purpose}
           workspaceId={note.workspaceId}
+          author={{
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar
+          }}
+          createdAt={new Date(note.createdAt)}
         />
       </header>
       <div className="flex-1 px-12 p-8 gap-8 flex overflow-hidden">

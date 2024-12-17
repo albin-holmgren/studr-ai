@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("POSTGRES_URL_NON_POOLING")
+  url      = env("POSTGRES_PRISMA_URL")
 }
 
 model User {
@@ -30,6 +30,8 @@ model User {
   updatedAt     DateTime  @updatedAt
   workspaces    Workspace[]
   notes         Note[]
+  chatMessages  ChatMessage[]
+  noteHistory   NoteHistory[]
 }
 
 model Workspace {
@@ -48,15 +50,20 @@ model Note {
   title       String
   content     String?   @db.Text
   emoji       String?   @default("📝")
+  purpose     String?   @db.Text
   archived    Boolean   @default(false)
   workspaceId String
   userId      String
+  linkAccess  String    @default("viewer") // 'viewer', 'editor', or 'admin'
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   suggestions Suggestion[]
   citations   Citation[]
+  gradingCriteria GradingCriteria[]
+  history     NoteHistory[]
+  access      NoteAccess[]
 }
 
 model PaymentMethod {
@@ -128,4 +135,54 @@ model Citation {
 
   @@index([noteId])
   @@index([referenceId])
+}
+
+model GradingCriteria {
+  id          String    @id @default(cuid())
+  noteId      String
+  fileName    String
+  fileUrl     String
+  fileType    String
+  createdAt   DateTime  @default(now())
+  note        Note      @relation(fields: [noteId], references: [id], onDelete: Cascade)
+}
+
+model NoteHistory {
+  id          String    @id @default(cuid())
+  noteId      String
+  title       String
+  content     String?   @db.Text
+  emoji       String?
+  changeType  String    // e.g., "title_change", "content_update", "emoji_change", "purpose_update"
+  changeSummary String? @db.Text
+  userId      String
+  createdAt   DateTime  @default(now())
+  note        Note      @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
+  @@index([userId])
+}
+
+model NoteAccess {
+  id        String   @id @default(cuid())
+  noteId    String
+  userId    String
+  role      String   // 'viewer', 'editor', 'admin'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([noteId, userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  role      String   // 'user' or 'assistant'
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

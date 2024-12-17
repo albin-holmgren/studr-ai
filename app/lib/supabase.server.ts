@@ -1,5 +1,18 @@
+import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/auth-helpers-remix";
 import type { Database } from "~/types/database";
+
+// Create a Supabase client with admin privileges for server-side operations
+export const supabaseAdmin = createClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 
 export async function getSupabaseUser(request: Request) {
   const env = {

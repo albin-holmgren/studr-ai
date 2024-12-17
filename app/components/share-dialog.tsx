@@ -1,242 +1,385 @@
-"use client"
-
 import * as React from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { Copy, Mail, Twitter, Facebook, Linkedin, Instagram, Youtube } from "lucide-react"
-import { toast } from "sonner"
+import { Check, Copy, Crown, Globe, HelpCircle, Search, Users } from "lucide-react"
+import { useFetcher } from "@remix-run/react"
+import { useDebounce } from "~/hooks/use-debounce"
+import { useUser } from "~/hooks/use-user"
 
-// Custom X (Twitter) icon component
-const XIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    className="h-4 w-4"
-    fill="currentColor"
-  >
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-  </svg>
-)
+import { Button } from "~/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog"
+import { Input } from "~/components/ui/input"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip"
 
-// Custom TikTok icon component
-const TikTokIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    className="h-4 w-4"
-    fill="currentColor"
-  >
-    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
-  </svg>
-)
+interface User {
+  id: string
+  name: string | null
+  email: string
+  avatar: string | null
+}
 
-// Custom Reddit icon component
-const RedditIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    className="h-4 w-4"
-    fill="currentColor"
-  >
-    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
-  </svg>
-)
+interface NoteAccess {
+  id: string
+  userId: string
+  role: string
+  user: User
+}
 
-export function ShareDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const [email, setEmail] = React.useState("")
-  const inviteLink = "https://studr.ai/invite/xyz123" // Replace with actual invite link generation
+interface ShareDialogProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  note: {
+    id: string
+  }
+  initialAccess?: NoteAccess[]
+  defaultLinkAccess?: "viewer" | "editor" | "admin"
+}
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(inviteLink)
-      toast.success("Invite link copied to clipboard!")
-    } catch (err) {
-      toast.error("Failed to copy invite link")
+export function ShareDialog({ 
+  open, 
+  onOpenChange, 
+  note,
+  initialAccess = [],
+  defaultLinkAccess = "viewer",
+}: ShareDialogProps) {
+  const currentUser = useUser()
+  const [copied, setCopied] = React.useState(false)
+  const [linkAccess, setLinkAccess] = React.useState(defaultLinkAccess)
+  const [searchQuery, setSearchQuery] = React.useState("")
+  const [searchResults, setSearchResults] = React.useState<User[]>([])
+  const [access, setAccess] = React.useState<NoteAccess[]>(initialAccess)
+  const debouncedSearch = useDebounce(searchQuery, 300)
+  const fetcher = useFetcher()
+  const searchFetcher = useFetcher()
+  const accessFetcher = useFetcher()
+  const inviteFetcher = useFetcher()
+
+  React.useEffect(() => {
+    if (fetcher.data?.note?.access) {
+      setAccess(fetcher.data.note.access)
     }
+  }, [fetcher.data])
+
+  React.useEffect(() => {
+    if (debouncedSearch.length > 0) {
+      searchFetcher.load(`/api/users/search?q=${encodeURIComponent(debouncedSearch)}`)
+    } else {
+      setSearchResults([])
+    }
+  }, [debouncedSearch])
+
+  React.useEffect(() => {
+    if (searchFetcher.data?.users) {
+      setSearchResults(searchFetcher.data.users)
+    }
+  }, [searchFetcher.data])
+
+  const copyLink = () => {
+    const shareUrl = new URL(window.location.href)
+    shareUrl.searchParams.set("access", linkAccess)
+    navigator.clipboard.writeText(shareUrl.toString())
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
-  const shareToSocial = (platform: string) => {
-    const text = "Join me on Studr.ai - The AI-powered study platform!"
-    const url = encodeURIComponent(inviteLink)
-    
-    let shareUrl = ""
-    switch (platform) {
-      case "twitter":
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${url}`
-        break
-      case "facebook":
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`
-        break
-      case "linkedin":
-        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`
-        break
-      case "reddit":
-        shareUrl = `https://www.reddit.com/submit?url=${url}&title=${encodeURIComponent(text)}`
-        break
-      case "instagram":
-        // Instagram doesn't have a direct share URL, open stories in new tab
-        toast.info("Open Instagram Stories and paste your copied link!", {
-          description: "Your invite link has been copied to clipboard."
-        })
-        navigator.clipboard.writeText(inviteLink)
-        window.open("https://instagram.com", "_blank")
-        return
-      case "youtube":
-        // YouTube doesn't have a direct share URL, but we can open YouTube
-        toast.info("Share your invite link in your next video description!", {
-          description: "Your invite link has been copied to clipboard."
-        })
-        navigator.clipboard.writeText(inviteLink)
-        window.open("https://studio.youtube.com", "_blank")
-        return
-      case "tiktok":
-        // TikTok doesn't have a direct share URL, but we can open TikTok
-        toast.info("Share your invite link in your next TikTok bio!", {
-          description: "Your invite link has been copied to clipboard."
-        })
-        navigator.clipboard.writeText(inviteLink)
-        window.open("https://www.tiktok.com/upload", "_blank")
-        return
-    }
-    
-    if (shareUrl) {
-      window.open(shareUrl, "_blank", "width=600,height=400")
-    }
+  const handleLinkAccessChange = (newAccess: string) => {
+    setLinkAccess(newAccess as "viewer" | "editor" | "admin")
+    fetcher.submit(
+      {
+        noteId: note.id,
+        action: "updateLinkAccess",
+        access: newAccess,
+      },
+      {
+        method: "POST",
+        action: "/api/note-access",
+      }
+    )
   }
 
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault()
-    // Add your invite logic here
-    toast.success("Invitation sent!")
-    setEmail("")
+  const handleRoleChange = (userId: string, newRole: string) => {
+    if (!["viewer", "editor", "admin"].includes(newRole)) {
+      return
+    }
+
+    accessFetcher.submit(
+      {
+        noteId: note.id,
+        userId,
+        role: newRole,
+        action: "update",
+      },
+      { method: "POST", action: "/api/note-access" }
+    )
+  }
+
+  const handleRemoveAccess = (userId: string) => {
+    // Don't allow removing owner's access
+    if (userId === currentUser.id) {
+      return
+    }
+
+    accessFetcher.submit(
+      {
+        noteId: note.id,
+        userId,
+        action: "remove",
+      },
+      { method: "POST", action: "/api/note-access" }
+    )
+  }
+
+  const handleInvite = (userId: string, role: string = "viewer") => {
+    inviteFetcher.submit(
+      {
+        noteId: note.id,
+        userId,
+        role,
+        action: "add",
+      },
+      { method: "POST", action: "/api/note-access" }
+    )
+    setSearchQuery("")
+    setSearchResults([])
+  }
+
+  const getAvatarUrl = (user: User) => {
+    return user.avatar || `https://avatar.vercel.sh/${user.email}`
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Invite Friends</DialogTitle>
+          <DialogTitle>Share Document</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <form onSubmit={handleInvite} className="grid gap-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="friend@example.com"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1"
-              />
-              <Button type="submit" className="shrink-0">
-                <Mail className="h-4 w-4 mr-2" />
-                Send
-              </Button>
-            </div>
-          </form>
-          
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or share via
-              </span>
+
+        <div className="mt-4 space-y-4">
+          {/* Link sharing section */}
+          <div className="rounded-lg border bg-muted/30 p-3 transition-colors hover:bg-muted/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <h3 className="text-sm font-medium">Share via link</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Anyone with the link can {linkAccess === "admin" ? "manage" : linkAccess} this document
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  value={linkAccess}
+                  onChange={(e) => handleLinkAccessChange(e.target.value)}
+                >
+                  <option value="viewer">Can view</option>
+                  <option value="editor">Can edit</option>
+                  <option value="admin">Can manage</option>
+                </select>
+                <Button variant="outline" size="sm" onClick={copyLink}>
+                  {copied ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy link
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 justify-items-center">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => shareToSocial("twitter")}
-              className="hover:bg-[#1DA1F2] hover:text-white"
-            >
-              <Twitter className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => shareToSocial("x")}
-              className="hover:bg-black hover:text-white"
-            >
-              <XIcon />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => shareToSocial("facebook")}
-              className="hover:bg-[#4267B2] hover:text-white"
-            >
-              <Facebook className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => shareToSocial("linkedin")}
-              className="hover:bg-[#0077B5] hover:text-white"
-            >
-              <Linkedin className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => shareToSocial("instagram")}
-              className="hover:bg-[#E4405F] hover:text-white"
-            >
-              <Instagram className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => shareToSocial("youtube")}
-              className="hover:bg-[#FF0000] hover:text-white"
-            >
-              <Youtube className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => shareToSocial("tiktok")}
-              className="hover:bg-black hover:text-white"
-            >
-              <TikTokIcon />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => shareToSocial("reddit")}
-              className="hover:bg-[#FF4500] hover:text-white"
-            >
-              <RedditIcon />
-            </Button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+          {/* Share with people section */}
+          <div>
+            <div className="mb-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium">Share with people</h3>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Invite people to view or edit this document</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or email..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchResults.length > 0 && (
+                    <div className="absolute top-full z-10 mt-1 w-full rounded-md border bg-popover p-2 shadow-md">
+                      {searchResults.map((user) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center justify-between rounded-sm p-2 hover:bg-accent"
+                        >
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={getAvatarUrl(user)}
+                              alt=""
+                              className="h-6 w-6 rounded-full"
+                            />
+                            <div>
+                              <p className="text-sm font-medium">{user.name}</p>
+                              <p className="text-xs text-muted-foreground">{user.email}</p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleInvite(user.id)}
+                          >
+                            Invite
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button disabled={searchQuery.length === 0}>
+                  <Users className="mr-2 h-4 w-4" />
+                  Invite people
+                </Button>
+              </div>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or copy link
-              </span>
-            </div>
-          </div>
 
-          <div className="flex gap-2">
-            <Input
-              readOnly
-              value={inviteLink}
-              className="flex-1"
-            />
-            <Button onClick={copyToClipboard} variant="secondary" className="shrink-0">
-              <Copy className="h-4 w-4 mr-2" />
-              Copy
-            </Button>
+            <div className="rounded-lg border">
+              <table className="min-w-full divide-y divide-border">
+                <thead>
+                  <tr>
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-medium text-muted-foreground">
+                      Name
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-medium text-muted-foreground">
+                      Access
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-medium text-muted-foreground">
+                      Last active
+                    </th>
+                    <th scope="col" className="relative py-3.5 pl-3 pr-4">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {/* Owner row */}
+                  <tr className="bg-muted/30 transition-colors">
+                    <td className="whitespace-nowrap py-4 pl-4 pr-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={currentUser?.avatar || `https://avatar.vercel.sh/${currentUser?.email}`}
+                          alt=""
+                          className="h-8 w-8 rounded-full"
+                        />
+                        <div>
+                          <div className="font-medium">{currentUser?.name || "Anonymous"}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {currentUser?.email || "No email"}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Crown className="h-4 w-4 text-amber-500" />
+                        Owner
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                        Active now
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm">
+                      {/* No actions for owner */}
+                    </td>
+                  </tr>
+
+                  {/* Other users */}
+                  {access.map((item) => (
+                    <tr key={item.id} className="transition-colors hover:bg-muted/30">
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={getAvatarUrl(item.user)}
+                            alt=""
+                            className="h-8 w-8 rounded-full"
+                          />
+                          <div>
+                            <div className="font-medium">{item.user.name || "Anonymous"}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {item.user.email || "No email"}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <select
+                                className="h-9 w-[110px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                value={item.role}
+                                onChange={(e) => handleRoleChange(item.user.id, e.target.value)}
+                                disabled={item.user.id === currentUser.id || accessFetcher.state === "submitting"}
+                              >
+                                <option value="viewer">Viewer</option>
+                                <option value="editor">Editor</option>
+                                <option value="admin">Admin</option>
+                              </select>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Change user's access level</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <div className={`h-2 w-2 rounded-full ${
+                            item.user.id === currentUser.id ? "bg-green-500" : "bg-gray-300"
+                          }`} />
+                          {item.user.id === currentUser.id ? "Active now" : "Unknown"}
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleRemoveAccess(item.user.id)}
+                          disabled={item.user.id === currentUser.id || accessFetcher.state === "submitting"}
+                        >
+                          Remove
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </DialogContent>

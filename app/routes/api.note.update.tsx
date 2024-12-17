@@ -7,19 +7,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const noteId = formData.get("noteId") as string
   const title = formData.get("title") as string | null
   const content = formData.get("content") as string | null
+  const emoji = formData.get("emoji") as string | null
+  const purpose = formData.get("purpose") as string | null
 
   if (!noteId) {
     return json({ error: "Note ID is required" }, { status: 400 })
   }
 
-  if (!title && !content) {
-    return json({ error: "Title or content is required" }, { status: 400 })
+  if (!title && !content && !emoji && !purpose) {
+    return json({ error: "No changes provided" }, { status: 400 })
   }
 
   const response = new Response()
   const supabase = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { request, response }
   )
 
@@ -52,14 +54,41 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "Note not found" }, { status: 404 })
     }
 
+    // Create history entry
+    let changeType = "content_update"
+    let changeSummary = "Updated document content"
+
+    if (title && title !== note.title) {
+      changeType = "title_change"
+      changeSummary = `Changed title from "${note.title}" to "${title}"`
+    } else if (emoji && emoji !== note.emoji) {
+      changeType = "emoji_change"
+      changeSummary = `Changed emoji from ${note.emoji || "none"} to ${emoji}`
+    } else if (purpose && purpose !== note.purpose) {
+      changeType = "purpose_update"
+      changeSummary = "Updated document purpose"
+    }
+
+    await db.noteHistory.create({
+      data: {
+        noteId,
+        userId: user.id,
+        title: note.title,
+        content: note.content,
+        emoji: note.emoji,
+        changeType,
+        changeSummary,
+      },
+    })
+
     // Update note
     const updatedNote = await db.note.update({
-      where: {
-        id: noteId,
-      },
+      where: { id: noteId },
       data: {
         ...(title && { title }),
         ...(content && { content }),
+        ...(emoji && { emoji }),
+        ...(purpose && { purpose }),
       },
     })
 

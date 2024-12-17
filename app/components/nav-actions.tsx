@@ -54,10 +54,24 @@ import { useToast } from "~/hooks/use-toast"
 import { useFavorites } from "~/hooks/use-favorites"
 
 interface NavActionsProps {
-  documentId: string
-  documentTitle: string
+  documentId?: string
+  documentTitle?: string
   documentEmoji?: string
-  workspaceId: string
+  documentPurpose?: string
+  gradingCriteria?: Array<{
+    id: string
+    fileName: string
+    fileUrl: string
+    fileType: string
+    createdAt: Date
+  }>
+  workspaceId?: string
+  author?: {
+    name?: string | null
+    email: string
+    avatar?: string | null
+  }
+  createdAt?: Date
 }
 
 const linkedLibraries = [
@@ -144,9 +158,13 @@ export function NavActions({
   documentId, 
   documentTitle, 
   documentEmoji,
-  workspaceId 
+  documentPurpose,
+  gradingCriteria,
+  workspaceId,
+  author,
+  createdAt
 }: NavActionsProps) {
-  const { toast } = useToast()
+  const { show } = useToast()
   const { addFavorite, removeFavorite, isFavorite } = useFavorites()
   const { addPage } = useWorkspaces()
   const navigate = useNavigate()
@@ -162,21 +180,18 @@ export function NavActions({
   const isNoteFavorite = isFavorite(documentId)
 
   const toggleFavorite = () => {
-    if (isNoteFavorite) {
-      removeFavorite(documentId)
-      toast({
-        description: "Removed from favorites",
-      })
-    } else {
-      addFavorite({
-        id: documentId,
-        title: documentTitle,
-        emoji: documentEmoji || "",
-        workspaceId,
-      })
-      toast({
-        description: "Added to favorites",
-      })
+    if (documentId) {
+      if (isNoteFavorite) {
+        removeFavorite(documentId)
+        show({
+          description: "Removed from favorites",
+        })
+      } else {
+        addFavorite(documentId)
+        show({
+          description: "Added to favorites",
+        })
+      }
     }
   }
 
@@ -203,20 +218,113 @@ export function NavActions({
         const result = await action(documentId, addPage)
         
         if (typeof result === 'string') {
-          toast({
+          show({
             description: result,
           })
         } else if (result?.id) {
           navigate(`/pages/${result.id}`)
-          toast({
+          show({
             description: result.message,
           })
         }
       }
     } catch (error) {
-      toast({
+      show({
         variant: "destructive",
         description: "An error occurred while performing this action.",
+      })
+    }
+  }
+
+  const handleTitleChange = async (newTitle: string) => {
+    if (!documentId) return
+
+    const formData = new FormData()
+    formData.append("noteId", documentId)
+    formData.append("title", newTitle)
+    formData.append("emoji", documentEmoji || "📄")
+
+    try {
+      const response = await fetch("/api/note/rename", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update title")
+      }
+
+      // Refresh the page data
+      revalidator.revalidate()
+    } catch (error) {
+      console.error("Error updating title:", error)
+    }
+  }
+
+  const handleEmojiChange = async (newEmoji: string) => {
+    if (!documentId) return
+
+    const formData = new FormData()
+    formData.append("noteId", documentId)
+    formData.append("title", documentTitle || "Untitled Document")
+    formData.append("emoji", newEmoji)
+
+    try {
+      const response = await fetch("/api/note/rename", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update emoji")
+      }
+
+      // Refresh the page data
+      revalidator.revalidate()
+    } catch (error) {
+      console.error("Error updating emoji:", error)
+    }
+  }
+
+  const handlePurposeChange = async (purpose: string) => {
+    if (!documentId) return
+
+    try {
+      await fetch(`/api/note/${documentId}/purpose`, {
+        method: 'PUT',
+        body: JSON.stringify({ purpose }),
+      })
+    } catch (error) {
+      show({
+        title: "Failed to update document purpose",
+        description: "Please try again later",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleGradingCriteriaUpload = async (files: FileList) => {
+    if (!documentId) return
+
+    const formData = new FormData()
+    Array.from(files).forEach((file) => {
+      formData.append('files', file)
+    })
+
+    try {
+      const response = await fetch(`/api/note/${documentId}/grading-criteria`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to upload files')
+      }
+    } catch (error) {
+      show({
+        title: "Failed to upload grading criteria",
+        description: "Please try again later",
+        variant: "destructive",
       })
     }
   }
@@ -228,13 +336,31 @@ export function NavActions({
   return (
     <>
       <ShareDialog open={showShareDialog} onOpenChange={setShowShareDialog} />
-      <InfoDialog open={showInfoDialog} onOpenChange={setShowInfoDialog} />
+      <InfoDialog 
+        open={showInfoDialog} 
+        onOpenChange={setShowInfoDialog}
+        documentId={documentId}
+        documentTitle={documentTitle}
+        documentEmoji={documentEmoji}
+        documentPurpose={documentPurpose}
+        gradingCriteria={gradingCriteria}
+        onTitleChange={handleTitleChange}
+        onEmojiChange={handleEmojiChange}
+        onPurposeChange={handlePurposeChange}
+        onGradingCriteriaUpload={handleGradingCriteriaUpload}
+        author={author}
+        createdAt={createdAt}
+      />
       <DocumentAIChat open={showAIChat} onOpenChange={setShowAIChat} documentTitle={documentTitle} />
       <LinkLibraryDialog open={showLinkLibrary} onOpenChange={setShowLinkLibrary} />
       <MoveToDialog open={showMoveToDialog} onOpenChange={setShowMoveToDialog} />
-      <VersionHistoryDialog open={showVersionHistory} onOpenChange={setShowVersionHistory} />
+      <VersionHistoryDialog 
+        open={showVersionHistory} 
+        onOpenChange={setShowVersionHistory}
+        documentId={documentId}
+      />
       <ExportDialog open={showExportDialog} onOpenChange={setShowExportDialog} />
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 pr-4">
         <div className="hidden font-medium text-muted-foreground md:inline-block">
           Edit Oct 08
         </div>
@@ -285,32 +411,50 @@ export function NavActions({
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => setShowLinkLibrary(true)}>
-                <LinkIcon className="h-4 w-4 mr-2" />
-                Link Library
+              <DropdownMenuItem
+                onClick={() => {
+                  if (documentId) {
+                    if (isFavorite(documentId)) {
+                      removeFavorite(documentId)
+                      show({
+                        description: "Removed from favorites",
+                      })
+                    } else {
+                      addFavorite(documentId)
+                      show({
+                        description: "Added to favorites",
+                      })
+                    }
+                  }
+                }}
+              >
+                <Star className={`text-muted-foreground ${isFavorite(documentId || "") && "fill-yellow-400 text-yellow-400"}`} />
+                <span>{isFavorite(documentId || "") ? "Remove from Favorites" : "Add to Favorites"}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setShowShareDialog(true)}
-          >
-            <Share2 className="h-4 w-4" />
-            <span className="sr-only">Share</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-8 w-8"
-            onClick={toggleFavorite}
-          >
-            <Star className={`h-4 w-4 ${isNoteFavorite ? "fill-yellow-400 text-yellow-400" : ""}`} />
-            <span className="sr-only">
-              {isNoteFavorite ? "Remove from favorites" : "Add to favorites"}
-            </span>
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowShareDialog(true)}
+            >
+              <Share2 className="h-4 w-4" />
+              <span className="sr-only">Share</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8"
+              onClick={toggleFavorite}
+            >
+              <Star className={`h-4 w-4 ${isNoteFavorite ? "fill-yellow-400 text-yellow-400" : ""}`} />
+              <span className="sr-only">
+                {isNoteFavorite ? "Remove from favorites" : "Add to favorites"}
+              </span>
+            </Button>
+          </div>
         </div>
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>

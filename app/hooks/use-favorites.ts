@@ -1,16 +1,9 @@
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 
-interface FavoriteNote {
-  id: string
-  title: string
-  emoji: string
-  workspaceId: string
-}
-
 interface FavoritesStore {
-  favorites: FavoriteNote[]
-  addFavorite: (note: FavoriteNote) => void
+  favoriteIds: string[]
+  addFavorite: (noteId: string) => void
   removeFavorite: (noteId: string) => void
   isFavorite: (noteId: string) => boolean
 }
@@ -21,17 +14,17 @@ const isServer = typeof window === "undefined"
 export const useFavorites = create<FavoritesStore>()(
   persist(
     (set, get) => ({
-      favorites: [],
-      addFavorite: (note) =>
+      favoriteIds: [],
+      addFavorite: (noteId) =>
         set((state) => ({
-          favorites: [...state.favorites, note],
+          favoriteIds: [...state.favoriteIds, noteId],
         })),
       removeFavorite: (noteId) =>
         set((state) => ({
-          favorites: state.favorites.filter((note) => note.id !== noteId),
+          favoriteIds: state.favoriteIds.filter((id) => id !== noteId),
         })),
       isFavorite: (noteId) =>
-        get().favorites.some((note) => note.id === noteId),
+        get().favoriteIds.includes(noteId),
     }),
     {
       name: "favorites-storage",

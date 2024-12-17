@@ -13,9 +13,11 @@ import { createBrowserClient } from "@supabase/auth-helpers-remix";
 import { useEffect, useState } from "react";
 import { createServerClient } from "@supabase/auth-helpers-remix";
 import { db } from "~/lib/db.server";
+import { ensureGradingCriteriaBucket } from "~/lib/storage.server";
 import { PageTitleProvider } from "./components/page-title-context";
 import { SidebarProvider } from "~/components/ui/sidebar";
 import { Toaster } from "sonner";
+import { ToastContainer } from "./components/ui/use-toast";
 
 import "./tailwind.css";
 
@@ -64,6 +66,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }[] = [];
   
   if (session?.user?.email) {
+    await ensureGradingCriteriaBucket();
+
     user = await db.user.findUnique({
       where: { email: session.user.email },
       include: {
@@ -164,11 +168,13 @@ export default function App() {
           rel="stylesheet"
         />
       </head>
-      <body className="h-full">
+      <body className="min-h-screen bg-background font-sans antialiased">
         <PageTitleProvider>
-          <SidebarProvider>
-            <Outlet context={{ supabase, user, session, workspaces }} />
-          </SidebarProvider>
+          <ToastContainer>
+            <SidebarProvider>
+              <Outlet context={{ supabase, user, session, workspaces }} />
+            </SidebarProvider>
+          </ToastContainer>
         </PageTitleProvider>
         <Toaster position="bottom-right" />
         <ScrollRestoration />
