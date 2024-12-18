@@ -20,6 +20,8 @@ import { Toaster } from "sonner";
 import { ToastContainer } from "./components/ui/use-toast";
 
 import "./tailwind.css";
+import "./styles/editor.css";
+import './globals.css'
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -46,9 +48,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     response,
   });
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
   let user = null;
   let workspaces: {
@@ -106,8 +109,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
     {
       headers: response.headers,
-    }
-  );
+    });
+  } catch (error) {
+    // console.error("Loader error:", error);
+    return json({ env, workspaces: [], user: null, session: null });
+  }
 };
 
 let browserSupabase: ReturnType<typeof createBrowserClient> | null = null;

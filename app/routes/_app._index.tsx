@@ -1,11 +1,12 @@
 import * as React from "react"
-import { useLoaderData } from "@remix-run/react"
+import { useLoaderData, useParams } from "@remix-run/react"
 import { json, type LoaderFunctionArgs } from "@remix-run/node"
 import { createServerClient } from "@supabase/auth-helpers-remix"
 import { Plus, FileText, Brain, Trophy } from "lucide-react"
 import { db } from "~/lib/db.server"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import Document from "~/[room]/page"
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const response = new Response()
@@ -45,7 +46,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function Index() {
   const data = useLoaderData<typeof loader>()
-
+  const { room } = useParams();
   if ('error' in data) {
     return <div>Error: {data.error}</div>
   }
@@ -144,6 +145,7 @@ export default function Index() {
           </Button>
         </div>
       </div>
+      <Document params={{ room: room || "" }} />
     </div>
   )
 }
