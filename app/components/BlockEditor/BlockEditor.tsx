@@ -3,7 +3,6 @@ import React, { useRef } from 'react'
 
 // import '@/styles/index.css'
 import '~/styles/index.css'
-import { EditorHeader } from './components/EditorHeader'
 import { TextMenu } from '../menus/TextMenu'
 import { ContentItemMenu } from '../menus/ContentItemMenu'
 import * as Y from 'yjs'
@@ -38,13 +37,6 @@ export const BlockEditor = ({
     <div className="flex h-full" ref={menuContainerRef}>
       <Sidebar isOpen={leftSidebar.isOpen} onClose={leftSidebar.close} editor={editor} />
       <div className="relative flex flex-col flex-1 h-full overflow-hidden">
-        <EditorHeader
-          editor={editor}
-          collabState={collabState}
-          users={users}
-          isSidebarOpen={leftSidebar.isOpen}
-          toggleSidebar={leftSidebar.toggle}
-        />
         <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
         <ContentItemMenu editor={editor} />
         <LinkMenu editor={editor} appendTo={menuContainerRef} />
