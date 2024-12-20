@@ -45,7 +45,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function Index() {
   const data = useLoaderData<typeof loader>()
-
   if ('error' in data) {
     return <div>Error: {data.error}</div>
   }

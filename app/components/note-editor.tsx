@@ -21,7 +21,7 @@ import Link from '@tiptap/extension-link'
 import HorizontalRule from '@tiptap/extension-horizontal-rule'
 import ListItem from '@tiptap/extension-list-item'
 import Underline from '@tiptap/extension-underline'
-import { useFetcher } from '@remix-run/react'
+import { useFetcher, useParams } from '@remix-run/react'
 import { cn } from '~/lib/utils'
 import {
   Bold,
@@ -38,7 +38,7 @@ import {
   Minus,
 } from 'lucide-react'
 import { EditorToolbar } from './editor-toolbar'
-
+import Documents from "~/[room]/page"
 interface MenuButtonProps {
   onClick: () => void
   isActive?: boolean
@@ -84,6 +84,7 @@ interface TiptapEditorProps {
 }
 
 export function TiptapEditor({ content = '', onChange, className }: TiptapEditorProps) {
+  const { room } = useParams();
   const editor = useEditor({
     extensions: [
       Document,
@@ -147,10 +148,11 @@ export function TiptapEditor({ content = '', onChange, className }: TiptapEditor
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      <EditorToolbar editor={editor} className="border-b" />
+      {/* {/ <EditorToolbar editor={editor} className="border-b" /> /} */}
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="h-full px-4 py-4">
-          <EditorContent editor={editor} className="h-full" />
+        <div className="h-full">
+          {/* {/ <EditorContent editor={editor} className="h-full" /> /} */}
+          <Documents params={{ room: room || "" }} />
         </div>
       </div>
     </div>

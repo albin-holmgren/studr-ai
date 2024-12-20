@@ -32,6 +32,7 @@ model User {
   notes         Note[]
   chatMessages  ChatMessage[]
   noteHistory   NoteHistory[]
+  noteAccess    NoteAccess[]
 }
 
 model Workspace {
@@ -54,7 +55,6 @@ model Note {
   archived    Boolean   @default(false)
   workspaceId String
   userId      String
-  linkAccess  String    @default("viewer") // 'viewer', 'editor', or 'admin'
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
