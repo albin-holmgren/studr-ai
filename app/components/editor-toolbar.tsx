@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react'
 import { cn } from '~/lib/utils'
+import { AIDropdown } from './menus/TextMenu/components/AIDropdown'
 
 interface EditorToolbarProps {
   editor: Editor | null
@@ -89,6 +90,8 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         >
           <MoreHorizontal className="h-4 w-4" />
         </Toolbar.Button>
+        <div className="w-px h-6 bg-border mx-1" />
+        <AIDropdown editor={editor} />
       </div>
     </Toolbar>
   )

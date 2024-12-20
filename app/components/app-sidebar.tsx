@@ -22,6 +22,7 @@ import { NavFavorites } from "~/components/nav-favorites"
 import { NavMain } from "~/components/nav-main"
 import { NavSecondary } from "~/components/nav-secondary"
 import { NavWorkspace } from "~/components/nav-workspace"
+import { NavLibrary } from "~/components/nav-library"
 import { NavUser } from "./nav-user"
 import {
   CommandDialog,
@@ -48,6 +49,7 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
     notes?: {
       id: string
       title: string
+      emoji: string
       createdAt: string
       updatedAt: string
     }[]
@@ -57,8 +59,23 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
     email: string
     name: string | null
     avatar: string | null
+    workspaces: any[]
+    libraries: {
+      id: string
+      name: string
+      emoji: string
+      createdAt: string
+      updatedAt: string
+      items: {
+        id: string
+        title: string
+        emoji: string
+        createdAt: string
+        updatedAt: string
+      }[]
+    }[]
   }
-  session: { user: User } | null
+  session: any
   supabase: any
 }
 
@@ -377,6 +394,7 @@ export function AppSidebar({
           <div className="flex-1">
             <NavFavorites favorites={data.favorites} />
             <NavWorkspace workspaces={workspaces} />
+            <NavLibrary libraries={user.libraries} />
             <NavSecondary 
               items={data.navSecondary.map(item => ({
                 ...item,

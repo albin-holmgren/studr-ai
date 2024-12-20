@@ -21,6 +21,7 @@ import Link from '@tiptap/extension-link'
 import HorizontalRule from '@tiptap/extension-horizontal-rule'
 import ListItem from '@tiptap/extension-list-item'
 import Underline from '@tiptap/extension-underline'
+import { Ai } from '~/extensions/Ai' 
 import { useFetcher, useParams } from '@remix-run/react'
 import { cn } from '~/lib/utils'
 import {
@@ -100,16 +101,8 @@ export function TiptapEditor({ content = '', onChange, className }: TiptapEditor
           class: 'list-disc list-outside leading-3 -mt-2',
         },
       }),
-      OrderedList.configure({
-        HTMLAttributes: {
-          class: 'list-decimal list-outside leading-3 -mt-2',
-        },
-      }),
-      TaskList.configure({
-        HTMLAttributes: {
-          class: 'not-prose pl-2',
-        },
-      }),
+      OrderedList,
+      TaskList,
       TaskItem.configure({
         HTMLAttributes: {
           class: 'flex items-start my-4',
@@ -130,6 +123,7 @@ export function TiptapEditor({ content = '', onChange, className }: TiptapEditor
       Image,
       Link,
       HorizontalRule,
+      Ai, 
     ],
     content,
     editorProps: {
@@ -159,35 +153,42 @@ export function TiptapEditor({ content = '', onChange, className }: TiptapEditor
   )
 }
 
+import { useCallback, useState } from 'react';
+import debounce from 'lodash.debounce';
+
 interface NoteEditorProps {
   initialContent?: string
   noteId: string
   className?: string
+  onContentChange?: (content: string) => void
 }
 
-export function NoteEditor({ initialContent = '', noteId, className }: NoteEditorProps) {
-  const [content, setContent] = React.useState(initialContent)
+export function NoteEditor({ initialContent = '', noteId, className, onContentChange }: NoteEditorProps) {
   const fetcher = useFetcher()
+  const debouncedSave = useCallback(
+    debounce((content: string) => {
+      fetcher.submit(
+        { content },
+        { method: 'post', action: `/api/notes/${noteId}` }
+      )
+    }, 1000),
+    [fetcher, noteId]
+  )
 
-  const handleChange = (newContent: string) => {
-    setContent(newContent)
-    
-    // Debounce the API call
-    const formData = new FormData()
-    formData.append('noteId', noteId)
-    formData.append('content', newContent)
-    
-    fetcher.submit(formData, {
-      method: 'post',
-      action: '/api/note/update'
-    })
-  }
+  const handleUpdate = useCallback(
+    ({ editor }) => {
+      const content = editor.getHTML()
+      debouncedSave(content)
+      onContentChange?.(content)
+    },
+    [debouncedSave, onContentChange]
+  )
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
-      <TiptapEditor 
-        content={content} 
-        onChange={handleChange}
+    <div className={cn('min-h-[500px] w-full', className)}>
+      <TiptapEditor
+        content={initialContent}
+        onChange={handleUpdate}
       />
     </div>
   )

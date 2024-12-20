@@ -61,12 +61,16 @@ export function NavWorkspace({
 }) {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editingNoteTitle, setEditingNoteTitle] = useState<string | null>(null)
+  const [showAllWorkspaces, setShowAllWorkspaces] = useState(false)
   const navigation = useNavigation()
   const isSubmitting = navigation.state === "submitting"
   const fetcher = useFetcher()
   const workspaceFetcher = useFetcher()
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set())
   const pathname = useLocation().pathname
+
+  const visibleWorkspaces = showAllWorkspaces ? workspaces : workspaces.slice(0, 5)
+  const hasMoreWorkspaces = workspaces.length > 5
 
   const handleCreateNote = (workspaceId: string) => {
     const tempId = `temp-${Date.now()}`
@@ -178,7 +182,7 @@ export function NavWorkspace({
 
       <SidebarGroupContent>
         <SidebarMenu>
-          {workspaces?.map((workspace) => (
+          {visibleWorkspaces?.map((workspace) => (
             <Collapsible key={workspace.id} open={expandedWorkspaces.has(workspace.id)} onOpenChange={() => toggleWorkspace(workspace.id)}>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
@@ -260,12 +264,17 @@ export function NavWorkspace({
               </CollapsibleContent>
             </Collapsible>
           ))}
-          <SidebarMenuItem>
-            <SidebarMenuButton className="text-sidebar-foreground/70">
-              <MoreHorizontal />
-              <span>More</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {hasMoreWorkspaces && (
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                className="text-sidebar-foreground/70"
+                onClick={() => setShowAllWorkspaces(!showAllWorkspaces)}
+              >
+                <MoreHorizontal />
+                <span>{showAllWorkspaces ? 'Show Less' : 'More'}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

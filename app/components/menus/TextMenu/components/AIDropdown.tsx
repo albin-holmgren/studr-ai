@@ -1,4 +1,3 @@
-
 import * as Dropdown from '@radix-ui/react-dropdown-menu'
 import { useCallback } from 'react'
 import { DropdownButton } from '~/components/new-ui/Dropdown'
@@ -7,32 +6,20 @@ import { Surface } from '~/components/new-ui/Surface'
 import { Toolbar } from '~/components/new-ui/Toolbar'
 import { Language } from '~/extensions/Ai'
 import { languages, tones } from '~/new-lib/constants'
+import { useEditor } from '@tiptap/react'
 
 export type AIDropdownProps = {
-  onSimplify: () => void
-  onFixSpelling: () => void
-  onMakeShorter: () => void
-  onMakeLonger: () => void
-  onEmojify: () => void
-  onTldr: () => void
-  onTranslate: (language: Language) => void
-  onTone: (tone: string) => void
-  onCompleteSentence: () => void
+  editor: ReturnType<typeof useEditor>
 }
 
-export const AIDropdown = ({
-  onCompleteSentence,
-  onEmojify,
-  onFixSpelling,
-  onMakeLonger,
-  onMakeShorter,
-  onSimplify,
-  onTldr,
-  onTone,
-  onTranslate,
-}: AIDropdownProps) => {
-  const handleTone = useCallback((tone: string) => () => onTone(tone), [onTone])
-  const handleTranslate = useCallback((language: Language) => () => onTranslate(language), [onTranslate])
+export const AIDropdown = ({ editor }: AIDropdownProps) => {
+  const handleAction = useCallback((action: string, param?: string) => {
+    if (!editor) return
+    editor.commands.aiProcess(action, param)
+  }, [editor])
+
+  const handleTone = useCallback((tone: string) => () => handleAction('tone', tone), [handleAction])
+  const handleTranslate = useCallback((language: Language) => () => handleAction('translate', language), [handleAction])
 
   return (
     <Dropdown.Root>
@@ -48,25 +35,25 @@ export const AIDropdown = ({
       </Dropdown.Trigger>
       <Dropdown.Content asChild>
         <Surface className="p-2 min-w-[10rem]">
-          <Dropdown.Item onClick={onSimplify}>
+          <Dropdown.Item onClick={() => handleAction('simplify')}>
             <DropdownButton>
               <Icon name="CircleSlash" />
               Simplify
             </DropdownButton>
           </Dropdown.Item>
-          <Dropdown.Item onClick={onFixSpelling}>
+          <Dropdown.Item onClick={() => handleAction('fixSpelling')}>
             <DropdownButton>
               <Icon name="Eraser" />
               Fix spelling & grammar
             </DropdownButton>
           </Dropdown.Item>
-          <Dropdown.Item onClick={onMakeShorter}>
+          <Dropdown.Item onClick={() => handleAction('makeShorter')}>
             <DropdownButton>
               <Icon name="ArrowLeftToLine" />
               Make shorter
             </DropdownButton>
           </Dropdown.Item>
-          <Dropdown.Item onClick={onMakeLonger}>
+          <Dropdown.Item onClick={() => handleAction('makeLonger')}>
             <DropdownButton>
               <Icon name="ArrowRightToLine" />
               Make longer
@@ -90,16 +77,16 @@ export const AIDropdown = ({
               </Surface>
             </Dropdown.SubContent>
           </Dropdown.Sub>
-          <Dropdown.Item onClick={onTldr}>
+          <Dropdown.Item onClick={() => handleAction('tldr')}>
             <DropdownButton>
               <Icon name="Ellipsis" />
               Tl;dr:
             </DropdownButton>
           </Dropdown.Item>
-          <Dropdown.Item onClick={onEmojify}>
+          <Dropdown.Item onClick={() => handleAction('emojify')}>
             <DropdownButton>
               <Icon name="SmilePlus" />
-              Emojify=====
+              Add emojis
             </DropdownButton>
           </Dropdown.Item>
           <Dropdown.Sub>
@@ -112,17 +99,17 @@ export const AIDropdown = ({
             </Dropdown.SubTrigger>
             <Dropdown.SubContent>
               <Surface className="flex flex-col min-w-[15rem] p-2 max-h-[20rem] overflow-auto">
-                {languages.map(lang => (
-                  <Dropdown.Item onClick={handleTranslate(lang.value)} key={lang.value}>
-                    <DropdownButton>{lang.label}</DropdownButton>
+                {languages.map(language => (
+                  <Dropdown.Item onClick={handleTranslate(language.value)} key={language.value}>
+                    <DropdownButton>{language.label}</DropdownButton>
                   </Dropdown.Item>
                 ))}
               </Surface>
             </Dropdown.SubContent>
           </Dropdown.Sub>
-          <Dropdown.Item onClick={onCompleteSentence}>
+          <Dropdown.Item onClick={() => handleAction('completeSentence')}>
             <DropdownButton>
-              <Icon name="PenLine" />
+              <Icon name="Terminal" />
               Complete sentence
             </DropdownButton>
           </Dropdown.Item>

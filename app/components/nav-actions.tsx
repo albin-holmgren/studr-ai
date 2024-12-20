@@ -52,6 +52,7 @@ import {
 import { useWorkspaces } from "~/hooks/use-workspaces"
 import { useToast } from "~/hooks/use-toast"
 import { useFavorites } from "~/hooks/use-favorites"
+import { format } from 'date-fns'
 
 interface NavActionsProps {
   documentId?: string
@@ -72,6 +73,8 @@ interface NavActionsProps {
     avatar?: string | null
   }
   createdAt?: Date
+  lastEdited?: Date
+  content?: string
 }
 
 const linkedLibraries = [
@@ -154,6 +157,14 @@ const data = [
   ],
 ]
 
+function getWordCount(str: string): number {
+  return str.trim().split(/\s+/).filter(word => word.length > 0).length
+}
+
+function getCharacterCount(str: string): number {
+  return str.length
+}
+
 export function NavActions({ 
   documentId, 
   documentTitle, 
@@ -162,7 +173,9 @@ export function NavActions({
   gradingCriteria,
   workspaceId,
   author,
-  createdAt
+  createdAt,
+  lastEdited,
+  content = ''
 }: NavActionsProps) {
   const { show } = useToast()
   const { addFavorite, removeFavorite, isFavorite } = useFavorites()
@@ -360,12 +373,14 @@ export function NavActions({
         documentId={documentId}
       />
       <ExportDialog open={showExportDialog} onOpenChange={setShowExportDialog} />
-      <div className="flex items-center gap-2 pr-4">
-      <div className="hidden font-medium text-muted-foreground md:inline-block mr-3">
-          Counter
+      <div className="flex items-center gap-3 pr-4">
+        <div className="hidden text-muted-foreground md:flex flex-col items-end ">
+          <span className="text-xs">{getWordCount(content)} words</span>
+          <span className="text-xs">{getCharacterCount(content)} characters</span>
         </div>
-        <div className="hidden font-medium text-muted-foreground md:inline-block">
-          Edit Oct 08
+        <div className="hidden h-8 w-px bg-border md:block" />
+        <div className="hidden text-sm text-muted-foreground md:inline-block">
+          {lastEdited ? ` ${format(new Date(lastEdited), 'MMM dd')}` : 'Not edited yet'}
         </div>
         <div className="hidden md:flex items-center gap-2">
           <Button 

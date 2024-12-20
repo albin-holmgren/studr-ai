@@ -41,6 +41,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
         orderBy: { createdAt: "desc" },
       },
+      libraries: {
+        include: {
+          items: {
+            orderBy: { createdAt: "desc" }
+          }
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
   })
 
@@ -49,10 +57,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   return json(
-    { 
-      user, 
-      session,
-      env 
+    {
+      env,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+        workspaces: user.workspaces,
+        libraries: user.libraries,
+      },
     },
     {
       headers: response.headers,
@@ -108,7 +122,7 @@ export default function App() {
           <AppSidebar 
             workspaces={workspaces} 
             user={data.user}
-            session={data.session}
+            session={null}
             supabase={supabase}
           />
           <main className="flex-1 flex">

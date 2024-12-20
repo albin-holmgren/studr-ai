@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("POSTGRES_PRISMA_URL")
+  url      = env("POSTGRES_URL_NON_POOLING")
 }
 
 model User {
@@ -33,6 +33,8 @@ model User {
   chatMessages  ChatMessage[]
   noteHistory   NoteHistory[]
   noteAccess    NoteAccess[]
+  libraries     Library[]
+  libraryItems  LibraryItem[]
 }
 
 model Workspace {
@@ -169,12 +171,44 @@ model NoteAccess {
   noteId    String
   userId    String
   role      String   // 'viewer', 'editor', 'admin'
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
   note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([noteId, userId])
+  @@map("note_access")
+}
+
+model Library {
+  id          String    @id @default(cuid())
+  name        String
+  emoji       String    @default("📚")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       LibraryItem[]
+
+  @@map("library")
+}
+
+model LibraryItem {
+  id          String    @id @default(cuid())
+  title       String
+  emoji       String    @default("📄")
+  content     String?   @db.Text
+  fileUrl     String?
+  fileName    String?
+  fileType    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  libraryId   String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  library     Library   @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+
+  @@map("library_item")
 }
 
 model ChatMessage {

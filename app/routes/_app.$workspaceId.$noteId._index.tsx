@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePageTitle } from '~/components/page-title-context';
 import { NoteEditor } from '~/components/note-editor';
 import { Suggestions } from '~/components/suggestions';
@@ -112,6 +112,7 @@ export default function NotePage() {
   const { note, user } = useLoaderData<typeof loader>()
   const { setTitle } = usePageTitle()
   const revalidator = useRevalidator()
+  const [content, setContent] = React.useState(note.content || '')
 
   useEffect(() => {
     setTitle(note.title)
@@ -149,6 +150,8 @@ export default function NotePage() {
             avatar: user.avatar
           }}
           createdAt={new Date(note.createdAt)}
+          lastEdited={new Date(note.updatedAt)}
+          content={content}
         />
       </header>
       <div className="flex-1 px-12 p-8 gap-8 flex overflow-hidden">
@@ -157,6 +160,8 @@ export default function NotePage() {
             key={note.id}
             noteId={note.id}
             initialContent={note.content}
+            className="flex-1"
+            onContentChange={setContent}
           />
         </div>
         <Suggestions
