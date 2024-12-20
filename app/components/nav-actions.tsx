@@ -361,6 +361,9 @@ export function NavActions({
       />
       <ExportDialog open={showExportDialog} onOpenChange={setShowExportDialog} />
       <div className="flex items-center gap-2 pr-4">
+      <div className="hidden font-medium text-muted-foreground md:inline-block mr-3">
+          Counter
+        </div>
         <div className="hidden font-medium text-muted-foreground md:inline-block">
           Edit Oct 08
         </div>
