@@ -20,6 +20,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const formData = await request.formData()
   const itemId = formData.get("itemId") as string
+  const restore = formData.get("restore") === "true"
 
   const user = await db.user.findUnique({
     where: { email: session.user.email! },
@@ -29,6 +30,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     throw new Response("User not found", { status: 404 })
   }
 
+  // For now, we'll actually delete the item since we don't have the archived field yet
   await db.libraryItem.delete({
     where: {
       id: itemId,

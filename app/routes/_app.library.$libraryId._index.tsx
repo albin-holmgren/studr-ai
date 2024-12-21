@@ -173,23 +173,14 @@ export default function LibraryPage() {
       )}
 
       <div className="flex-1 flex flex-col">
-        <div className="flex h-12 items-center justify-between px-4 border-b">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <LibraryTitle library={library} />
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          <div className="flex items-center gap-2">
-            <UrlInput libraryId={library.id} onSubmit={handleUrlSubmit} />
-            <FileUpload libraryId={library.id} onUpload={handleFileUpload} />
-            <Button 
-              variant="outline" 
+        <div className="flex h-12 items-center px-4 border-b">
+          <SidebarTrigger />
+        </div>
+
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-lg font-medium">Sources</h1>
+            <Button
               size="sm"
               onClick={() => {
                 const formData = new FormData()
@@ -202,77 +193,95 @@ export default function LibraryPage() {
               }}
             >
               <Plus className="h-4 w-4 mr-2" />
-              New Note
+              Add source
             </Button>
-            <NavActions />
           </div>
-        </div>
 
-        <div className="flex-1">
-          {library.items.length > 0 ? (
-            <div className="space-y-1 p-4">
-              {library.items.map((item) => (
-                <Link 
-                  key={item.id} 
-                  to={`/library/${library.id}/${item.id}`}
-                  className="block"
-                >
-                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 group">
-                    <div className="flex-shrink-0 text-muted-foreground">
-                      {item.fileType === "url" ? (
-                        <Globe className="h-5 w-5" />
-                      ) : item.fileType ? (
-                        <File className="h-5 w-5" />
-                      ) : (
-                        <File className="h-5 w-5" />
-                      )}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate group-hover:text-primary">
-                        {item.title || "Untitled"}
-                      </div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-2">
-                        <span>{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}</span>
-                        {item.fileType === "url" && item.fileUrl && (
-                          <>
-                            <span>•</span>
-                            <span className="truncate">{new URL(item.fileUrl).hostname.replace(/^www\./, '')}</span>
-                          </>
-                        )}
-                        {item.fileType && item.fileType !== "url" && item.fileName && (
-                          <>
-                            <span>•</span>
-                            <span className="truncate">{item.fileName}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {item.fileUrl && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          window.open(item.fileUrl, "_blank")
-                        }}
+          <div className="rounded-md border">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-border">
+                <thead>
+                  <tr className="bg-muted/50">
+                    <th scope="col" className="py-3 pl-4 pr-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sm:pl-6">
+                      Emoji
+                    </th>
+                    <th scope="col" className="py-3 pl-4 pr-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Title
+                    </th>
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Created
+                    </th>
+                    <th scope="col" className="relative py-3 pl-3 pr-6">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-background divide-y divide-border">
+                  {library.items.length > 0 ? (
+                    library.items.map((item) => (
+                      <tr 
+                        key={item.id} 
+                        className="hover:bg-muted/30 cursor-pointer" 
+                        onClick={() => navigate(`/library/${library.id}/${item.id}`)}
                       >
-                        Open in New Tab
-                      </Button>
-                    )}
-                  </div>
-                </Link>
-              ))}
+                        <td className="whitespace-nowrap py-3 pl-4 pr-3 text-sm sm:pl-6">
+                          <div className="text-base">
+                            {item.emoji || "📄"}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap py-3 pl-4 pr-3 text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="text-muted-foreground">
+                              {item.fileType === "url" ? (
+                                <Globe className="h-3.5 w-3.5" />
+                              ) : (
+                                <File className="h-3.5 w-3.5" />
+                              )}
+                            </div>
+                            <div className="font-medium">{item.title || "Untitled"}</div>
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-sm text-muted-foreground">
+                          {item.fileType || "Note"}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-sm text-muted-foreground">
+                          {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+                        </td>
+                        <td className="relative whitespace-nowrap py-3 pl-3 pr-6 text-right text-sm font-medium">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation() // Prevent row click when clicking delete
+                              const formData = new FormData()
+                              formData.append("itemId", item.id)
+                              fetcher.submit(formData, {
+                                method: "post",
+                                action: "/api/library/item/delete"
+                              })
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                        <p>No sources yet</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <Upload className="h-12 w-12 mb-4" />
-              <p className="text-lg font-medium">No items yet</p>
-              <p className="mt-1 text-sm">Drop files here or use the buttons above to add content</p>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

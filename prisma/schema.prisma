@@ -189,26 +189,26 @@ model Library {
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   items       LibraryItem[]
-
-  @@map("library")
 }
 
 model LibraryItem {
-  id          String    @id @default(cuid())
-  title       String
-  emoji       String    @default("📄")
-  content     String?   @db.Text
-  fileUrl     String?
-  fileName    String?
-  fileType    String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  userId      String
-  libraryId   String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  library     Library   @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  title     String
+  emoji     String?
+  content   String?  @db.Text
+  fileUrl   String?
+  fileName  String?
+  fileType  String?
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  libraryId String
+  library   Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
 
-  @@map("library_item")
+  @@index([userId])
+  @@index([libraryId])
 }
 
 model ChatMessage {

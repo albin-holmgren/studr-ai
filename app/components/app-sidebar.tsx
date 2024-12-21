@@ -371,9 +371,11 @@ export function AppSidebar({
         ? () => setOpen(true)
         : item.title === "Inbox"
         ? () => setInboxOpen(true)
+        : item.title === "Home"
+        ? () => navigate("/")
         : undefined
     }));
-  }, []);
+  }, [navigate]);
 
   return (
     <>
