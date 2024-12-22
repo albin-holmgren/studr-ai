@@ -1,5 +1,5 @@
 import { ArrowUpRight, Link, MoreHorizontal, Star, Trash2 } from "lucide-react"
-import { Link as RouterLink, useLoaderData } from "@remix-run/react"
+import { Link as RouterLink, useLoaderData, useLocation } from "@remix-run/react"
 
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ export function NavFavorites() {
   const { isMobile } = useSidebar()
   const { favoriteIds, removeFavorite } = useFavorites()
   const { user } = useLoaderData<typeof loader>()
+  const location = useLocation()
   
   // Find favorite notes from user's workspaces
   const favoriteNotes = user.workspaces
@@ -36,7 +37,11 @@ export function NavFavorites() {
       <SidebarMenu>
         {favoriteNotes.map((note) => (
           <SidebarMenuItem key={note.id}>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton 
+              asChild
+              isActive={location.pathname === `/${note.workspaceId}/${note.id}`}
+              isFavorite={true}
+            >
               <RouterLink to={`/${note.workspaceId}/${note.id}`} title={note.title}>
                 <div className="flex items-center gap-2">
                   <span className="text-base">{note.emoji || "📄"}</span>

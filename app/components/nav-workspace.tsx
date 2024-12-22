@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import { cn } from "~/lib/utils"
+import { useFavorites } from "~/hooks/use-favorites"
 
 function slugify(text: string) {
   return text
@@ -68,6 +69,8 @@ export function NavWorkspace({
   const workspaceFetcher = useFetcher()
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set())
   const pathname = useLocation().pathname
+  const { favoriteIds } = useFavorites()
+  const location = useLocation()
 
   const visibleWorkspaces = showAllWorkspaces ? workspaces : workspaces.slice(0, 5)
   const hasMoreWorkspaces = workspaces.length > 5
@@ -162,12 +165,12 @@ export function NavWorkspace({
 
   return (
     <SidebarGroup>
-      <div className="relative group">
-        <SidebarGroupLabel className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+      <div className="relative group/title">
+        <SidebarGroupLabel className="rounded-sm hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30">
           Workspaces
         </SidebarGroupLabel>
         <div 
-          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-md opacity-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-hover:opacity-100 hover:opacity-100 transition-opacity duration-200"
+          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-md opacity-0 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30 group-hover/title:opacity-100 hover:opacity-100 transition-opacity duration-200"
         >
           <button
             type="button"
@@ -184,12 +187,12 @@ export function NavWorkspace({
         <SidebarMenu>
           {visibleWorkspaces?.map((workspace) => (
             <Collapsible key={workspace.id} open={expandedWorkspaces.has(workspace.id)} onOpenChange={() => toggleWorkspace(workspace.id)}>
-              <SidebarMenuItem>
+              <SidebarMenuItem className="group/item">
                 <SidebarMenuButton asChild>
                   <Link
                     to={`/${workspace.id}`}
-                    className={cn("group flex w-full items-center justify-between gap-1 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50", {
-                      "bg-sidebar-accent": pathname === `/${workspace.id}`,
+                    className={cn("flex w-full items-center justify-between gap-1 rounded-sm px-1.5 py-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30", {
+                      "bg-zinc-200/40 dark:bg-zinc-800/40": location.pathname === `/${workspace.id}`,
                     })}
                   >
                     <div className="flex items-center gap-2">
@@ -200,10 +203,10 @@ export function NavWorkspace({
                 </SidebarMenuButton>
                 <CollapsibleTrigger asChild>
                   <SidebarMenuAction
-                    className="left-2 bg-sidebar-accent text-sidebar-accent-foreground data-[state=open]:rotate-90"
+                    className="left-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-sidebar-accent text-sidebar-accent-foreground data-[state=open]:rotate-90"
                     showOnHover
                   >
-                    <ChevronRight />
+                    <ChevronRight className="size-3" />
                   </SidebarMenuAction>
                 </CollapsibleTrigger>
                 <SidebarMenuAction 
@@ -216,31 +219,22 @@ export function NavWorkspace({
               <CollapsibleContent>
                 <SidebarMenuSub>
                   {(workspace.notes || []).map((note) => (
-                    <SidebarMenuSubItem key={note.id} className="relative hover:bg-sidebar-accent/50 group/note">
-                      <SidebarMenuSubButton asChild>
-                        <Link
-                          key={note.id}
+                    <SidebarMenuSubItem key={note.id}>
+                      <SidebarMenuSubButton
+                        asChild
+                        isActive={location.pathname === `/${workspace.id}/${note.id}`}
+                      >
+                        <Link 
                           to={`/${workspace.id}/${note.id}`}
-                          className="relative flex items-center gap-2 px-2 py-1 text-sm"
-                        >
-                          <span>{note.emoji || "📝"}</span>
-                          {editingNoteId === note.id ? (
-                            <input
-                              type="text"
-                              value={editingNoteTitle}
-                              onChange={(e) => setEditingNoteTitle(e.target.value)}
-                              onBlur={handleNoteRename}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleNoteRename()
-                                }
-                              }}
-                              className="w-full bg-transparent outline-none"
-                              autoFocus
-                            />
-                          ) : (
-                            <span className="line-clamp-1">{note.title}</span>
+                          className={cn(
+                            "w-full rounded-sm px-1.5 py-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30",
+                            location.pathname === `/${workspace.id}/${note.id}` && "bg-zinc-200/40 dark:bg-zinc-800/40 font-medium"
                           )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>{note.emoji || "📄"}</span>
+                            <span>{note.title}</span>
+                          </div>
                         </Link>
                       </SidebarMenuSubButton>
                       <DropdownMenu>

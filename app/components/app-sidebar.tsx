@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useNavigate } from "@remix-run/react"
+import { useNavigate, useLocation } from "@remix-run/react"
 import { useFetcher } from "@remix-run/react"
 import type { User } from "@supabase/supabase-js"
 import {
@@ -74,6 +74,10 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
         updatedAt: string
       }[]
     }[]
+    subscriptionTier?: string
+    tokenUsage?: {
+      daily: number
+    }
   }
   session: any
   supabase: any
@@ -312,6 +316,7 @@ export function AppSidebar({
   const [archiveOpen, setArchiveOpen] = React.useState(false)
   const [inboxOpen, setInboxOpen] = React.useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const fetcher = useFetcher<{
     results: Array<{
       id: string
@@ -367,6 +372,7 @@ export function AppSidebar({
   const navMainItems = React.useMemo(() => {
     return data.navMain.map(item => ({
       ...item,
+      isActive: item.title === "Home" ? location.pathname === "/" : false,
       onClick: item.title === "Search" 
         ? () => setOpen(true)
         : item.title === "Inbox"
@@ -375,7 +381,7 @@ export function AppSidebar({
         ? () => navigate("/")
         : undefined
     }));
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   return (
     <>
@@ -412,7 +418,10 @@ export function AppSidebar({
             />
           </div>
           <div className="sticky bottom-0 z-10">
-            <TokenUsage totalTokens={10000} usedTokens={7500} />
+            <TokenUsage 
+              subscriptionTier={user?.subscriptionTier} 
+              usedTokens={user?.tokenUsage?.daily || 0} 
+            />
           </div>
         </SidebarContent>
       </Sidebar>

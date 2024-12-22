@@ -82,8 +82,34 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             }
           }
         },
+        tokenUsage: true,
       },
     });
+
+    if (user?.tokenUsage) {
+      // Reset daily tokens if last reset was more than 24 hours ago
+      const lastReset = new Date(user.tokenUsage.lastReset);
+      const now = new Date();
+      if (now.getTime() - lastReset.getTime() > 24 * 60 * 60 * 1000) {
+        await db.tokenUsage.update({
+          where: { userId: user.id },
+          data: {
+            daily: 0,
+            lastReset: now,
+          },
+        });
+        user.tokenUsage.daily = 0;
+      }
+    } else if (user) {
+      // Create token usage record if it doesn't exist
+      const tokenUsage = await db.tokenUsage.create({
+        data: {
+          userId: user.id,
+          daily: 0,
+        },
+      });
+      user.tokenUsage = tokenUsage;
+    }
 
     if (user) {
       workspaces = user.workspaces.map(workspace => ({

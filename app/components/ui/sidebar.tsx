@@ -439,7 +439,7 @@ const SidebarGroupLabel = React.forwardRef<
       ref={ref}
       data-sidebar="group-label"
       className={cn(
-        "duration-200 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none ring-sidebar-ring transition-[margin,opa] ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 cursor-pointer",
+        "duration-200 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none ring-sidebar-ring transition-[margin,opa] ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground cursor-pointer",
         "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
         className
       )}
@@ -512,23 +512,22 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] cursor-pointer hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  cn(
+    "group relative flex w-full items-center gap-2 rounded-sm px-1.5 py-1 text-sm",
+    "hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30 hover:text-foreground/90",
+    "focus-visible:outline-none focus-visible:bg-zinc-200/30 dark:focus-visible:bg-zinc-800/30",
+    "disabled:pointer-events-none disabled:opacity-50",
+    "data-[active=true]:bg-zinc-200/40 dark:data-[active=true]:bg-zinc-800/40 data-[active=true]:text-foreground/90"
+  ),
   {
     variants: {
       variant: {
-        default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        outline:
-          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
-      },
-      size: {
-        default: "h-8 text-sm",
-        sm: "h-7 text-xs",
-        lg: "h-12 text-sm group-data-[collapsible=icon]:!p-0",
+        default: "",
+        ghost: "hover:bg-transparent focus-visible:bg-transparent",
       },
     },
     defaultVariants: {
       variant: "default",
-      size: "default",
     },
   }
 )
@@ -538,6 +537,7 @@ const SidebarMenuButton = React.forwardRef<
   React.ComponentProps<"button"> & {
     asChild?: boolean
     isActive?: boolean
+    isFavorite?: boolean
     variant?: VariantProps<typeof sidebarMenuButtonVariants>["variant"]
   }
 >(
@@ -545,6 +545,7 @@ const SidebarMenuButton = React.forwardRef<
     {
       asChild = false,
       isActive = false,
+      isFavorite = false,
       variant = "default",
       className,
       ...props
@@ -559,7 +560,13 @@ const SidebarMenuButton = React.forwardRef<
         ref={ref}
         data-sidebar="menu-button"
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant }), className)}
+        data-favorite={isFavorite}
+        className={cn(
+          sidebarMenuButtonVariants({ variant }),
+          "relative",
+          isActive && "bg-zinc-200/40 dark:bg-zinc-800/40 text-foreground/90",
+          className
+        )}
         {...props}
       />
     )
@@ -694,27 +701,24 @@ const SidebarMenuSubItem = React.forwardRef<
 SidebarMenuSubItem.displayName = "SidebarMenuSubItem"
 
 const SidebarMenuSubButton = React.forwardRef<
-  HTMLAnchorElement,
-  React.ComponentProps<"a"> & {
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<"div"> & {
     asChild?: boolean
-    size?: "sm" | "md"
     isActive?: boolean
+    isFavorite?: boolean
+    variant?: VariantProps<typeof sidebarMenuButtonVariants>["variant"]
   }
->(({ asChild = false, size = "md", isActive, className, ...props }, ref) => {
-  const Comp = asChild ? Slot : "a"
+>(({ className, asChild = false, isActive, variant = "default", ...props }, ref) => {
+  const Comp = asChild ? Slot : "div"
 
   return (
     <Comp
       ref={ref}
-      data-sidebar="menu-sub-button"
-      data-size={size}
       data-active={isActive}
       className={cn(
-        "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
-        "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
-        size === "sm" && "text-xs",
-        size === "md" && "text-sm",
-        "group-data-[collapsible=icon]:hidden",
+        sidebarMenuButtonVariants({ variant }),
+        "text-sm",
+        isActive && "bg-zinc-200/40 dark:bg-zinc-800/40 text-foreground/90",
         className
       )}
       {...props}

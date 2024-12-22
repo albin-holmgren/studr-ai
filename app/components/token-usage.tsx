@@ -7,14 +7,22 @@ import { Button } from "./ui/button"
 import { UpgradePopup } from "./upgrade-popup"
 
 interface TokenUsageProps {
-  totalTokens: number
+  subscriptionTier?: string
   usedTokens: number
 }
 
-export default function TokenUsage({ totalTokens, usedTokens }: TokenUsageProps) {
+const FREE_DAILY_TOKENS = 2000
+
+export default function TokenUsage({ subscriptionTier = "free", usedTokens }: TokenUsageProps) {
   const [upgradeOpen, setUpgradeOpen] = React.useState(false)
-  const percentage = Math.round((usedTokens / totalTokens) * 100)
-  const remaining = totalTokens - usedTokens
+  
+  // Don't show for pro users
+  if (subscriptionTier === "pro") {
+    return null
+  }
+
+  const percentage = Math.round((usedTokens / FREE_DAILY_TOKENS) * 100)
+  const remaining = FREE_DAILY_TOKENS - usedTokens
   const isLow = percentage > 80
 
   return (
@@ -24,7 +32,7 @@ export default function TokenUsage({ totalTokens, usedTokens }: TokenUsageProps)
         <div className="space-y-2">
           <div className="flex items-center justify-between text-[11px]">
             <span className="font-medium uppercase tracking-wide text-sidebar-foreground/70">
-              Token Usage
+              Daily Token Usage
             </span>
             <span className={`font-medium ${isLow ? "text-red-500" : "text-sidebar-foreground/70"}`}>
               {percentage}%
@@ -42,7 +50,7 @@ export default function TokenUsage({ totalTokens, usedTokens }: TokenUsageProps)
 
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-sidebar-foreground/70">
-              {remaining.toLocaleString()} tokens remaining
+              {remaining.toLocaleString()} tokens remaining today
             </span>
             <Button 
               variant="ghost"
@@ -51,7 +59,7 @@ export default function TokenUsage({ totalTokens, usedTokens }: TokenUsageProps)
               onClick={() => setUpgradeOpen(true)}
             >
               <ArrowUpCircle className="mr-1 h-3 w-3" />
-              Upgrade
+              Upgrade to Pro
             </Button>
           </div>
         </div>

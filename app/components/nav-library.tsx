@@ -151,12 +151,12 @@ export function NavLibrary({
 
   return (
     <SidebarGroup>
-      <div className="relative group">
-        <SidebarGroupLabel className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+      <div className="relative group/title">
+        <SidebarGroupLabel className="rounded-sm hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30">
           Library
         </SidebarGroupLabel>
         <div 
-          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-md opacity-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-hover:opacity-100 hover:opacity-100 transition-opacity duration-200"
+          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-md opacity-0 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30 group-hover/title:opacity-100 hover:opacity-100 transition-opacity duration-200"
         >
           <button
             type="button"
@@ -173,12 +173,12 @@ export function NavLibrary({
         <SidebarMenu>
           {visibleLibraries?.map((library) => (
             <Collapsible key={library.id} open={expandedLibraries.has(library.id)} onOpenChange={() => toggleLibrary(library.id)}>
-              <SidebarMenuItem>
+              <SidebarMenuItem className="group/item">
                 <SidebarMenuButton asChild>
                   <Link
                     to={`/library/${library.id}`}
-                    className={cn("group flex w-full items-center justify-between gap-1 rounded-lg px-2 py-2 hover:bg-sidebar-accent/50", {
-                      "bg-sidebar-accent": pathname === `/library/${library.id}`,
+                    className={cn("flex w-full items-center justify-between gap-1 rounded-sm px-1.5 py-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30", {
+                      "bg-zinc-200/40 dark:bg-zinc-800/40": pathname === `/library/${library.id}`,
                     })}
                   >
                     <div className="flex items-center gap-2">
@@ -189,10 +189,10 @@ export function NavLibrary({
                 </SidebarMenuButton>
                 <CollapsibleTrigger asChild>
                   <SidebarMenuAction
-                    className="left-2 bg-sidebar-accent text-sidebar-accent-foreground data-[state=open]:rotate-90"
+                    className="left-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-sidebar-accent text-sidebar-accent-foreground data-[state=open]:rotate-90"
                     showOnHover
                   >
-                    <ChevronRight />
+                    <ChevronRight className="size-3" />
                   </SidebarMenuAction>
                 </CollapsibleTrigger>
                 <SidebarMenuAction 
@@ -210,8 +210,8 @@ export function NavLibrary({
                         <Link 
                           to={`/library/${library.id}/source/${item.id}`}
                           className={cn(
-                            "w-full",
-                            pathname === `/library/${library.id}/source/${item.id}` && "font-medium"
+                            "w-full rounded-sm px-1.5 py-1 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30",
+                            pathname === `/library/${library.id}/source/${item.id}` && "bg-zinc-200/40 dark:bg-zinc-800/40 font-medium"
                           )}
                         >
                           {editingItemId === item.id ? (
