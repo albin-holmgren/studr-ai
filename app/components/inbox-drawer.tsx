@@ -16,22 +16,7 @@ interface InboxDrawerProps {
 }
 
 export function InboxDrawer({ open, onOpenChange }: InboxDrawerProps) {
-  const [notifications, setNotifications] = React.useState([
-    {
-      id: "1",
-      title: "Welcome to Studr AI",
-      description: "Get started by creating your first workspace",
-      timestamp: new Date(),
-      read: false,
-    },
-    {
-      id: "2",
-      title: "Pro Plan Trial",
-      description: "Your 14-day pro plan trial has started",
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      read: true,
-    },
-  ]);
+  const [notifications, setNotifications] = React.useState([]);
 
   const formatDate = (date: Date) => {
     const now = new Date();

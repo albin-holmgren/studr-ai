@@ -78,6 +78,7 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
     tokenUsage?: {
       daily: number
     }
+    notifications?: any[]
   }
   session: any
   supabase: any
@@ -109,11 +110,6 @@ const data = {
       icon: Search,
     },
     {
-      title: "Ask AI",
-      url: "/ai",
-      icon: Sparkles,
-    },
-    {
       title: "Home",
       url: "/",
       icon: Home,
@@ -123,7 +119,6 @@ const data = {
       title: "Inbox",
       url: "#",
       icon: Inbox,
-      badge: "10",
     },
   ],
   navSecondary: [
@@ -136,11 +131,6 @@ const data = {
       title: "Archive",
       url: "#",
       icon: Archive,
-    },
-    {
-      title: "Help",
-      url: "#",
-      icon: MessageCircleQuestion,
     },
   ],
   favorites: [

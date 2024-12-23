@@ -180,21 +180,7 @@ export default function LibraryPage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-lg font-medium">Sources</h1>
-            <Button
-              size="sm"
-              onClick={() => {
-                const formData = new FormData()
-                formData.append("libraryId", library.id)
-                formData.append("type", "note")
-                fetcher.submit(formData, {
-                  method: "post",
-                  action: "/api/library/item/create"
-                })
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add source
-            </Button>
+           
           </div>
 
           <div className="rounded-md border">
