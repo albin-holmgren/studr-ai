@@ -1,5 +1,5 @@
 import { EditorContent } from '@tiptap/react'
-import React, { useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 // import '@/styles/index.css'
 import '~/styles/index.css'
@@ -14,6 +14,8 @@ import { useSidebar } from '~/new-hooks/useSidebar'
 import { Sidebar } from '../Sidebar'
 import { LinkMenu } from '../menus'
 import { ColumnsMenu } from '~/extensions/MultiColumn/menus'
+import { useParams } from '@remix-run/react'
+import { Suggestions } from '../suggestions'
 
 export const BlockEditor = ({
   aiToken,
@@ -26,11 +28,30 @@ export const BlockEditor = ({
 }) => {
   const menuContainerRef = useRef(null)
 
-  const leftSidebar = useSidebar()
-  const { editor, users, collabState } = useBlockEditor({ aiToken, ydoc, provider })
+  const leftSidebar = useSidebar();
+  const { editor, users, collabState } = useBlockEditor({
+    aiToken,
+    ydoc,
+    provider,
+  });
+  const { noteId } = useParams<{ noteId: string }>();
+  const [newContent, setNewContent] = useState<string | undefined>();
 
+  useEffect(() => {
+    if (editor) {
+      const handleUpdate = () => {
+        const content = editor.getJSON();
+        const newcontent = content?.content?.[0].content?.[0].text;
+        setNewContent(newcontent);
+      };
+      editor.on("update", handleUpdate);
+      return () => {
+        editor.off("update", handleUpdate);
+      };
+    }
+  }, [editor]);
   if (!editor || !users) {
-    return null
+    return null;
   }
 
   return (
@@ -46,6 +67,11 @@ export const BlockEditor = ({
         <TableColumnMenu editor={editor} appendTo={menuContainerRef} />
         <ImageBlockMenu editor={editor} appendTo={menuContainerRef} />
       </div>
+      <Suggestions
+        noteId={noteId || ""}
+        content={newContent || ""}
+        className="w-80 shrink-0"
+      />
     </div>
   )
 }
