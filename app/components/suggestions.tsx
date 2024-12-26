@@ -63,14 +63,18 @@ export function Suggestions({ content, noteId, className }: SuggestionsProps) {
   const gradeStyle = getLetterGradeStyle(letterGrade)
   const fetcher = useFetcher()
   const debouncedContent = useDebounce(content, 1000)
+  const [hasFetchedData, setHasFetchedData] = React.useState(false); // Add this state
 
+  React.useEffect(() => {
+    console.log('suggestions', suggestions);
+  }, [suggestions]);
   React.useEffect(() => {
     if (!debouncedContent.trim()) {
       setSuggestions([])
       setScore(0)
       return
     }
-
+    if (loading || hasFetchedData) return;
     setLoading(true)
     const formData = new FormData()
     formData.append("noteId", noteId)
@@ -80,7 +84,7 @@ export function Suggestions({ content, noteId, className }: SuggestionsProps) {
       method: "post",
       action: "/api/note/suggestions"
     })
-  }, [debouncedContent, noteId, fetcher])
+  }, [noteId, debouncedContent, fetcher, loading, hasFetchedData])
 
   React.useEffect(() => {
     if (fetcher.data && !fetcher.data.error) {
@@ -88,6 +92,7 @@ export function Suggestions({ content, noteId, className }: SuggestionsProps) {
       setScore(fetcher.data.score || 0)
       setOpenSuggestion(fetcher.data.suggestions?.[0]?.id || null)
       setLoading(false)
+      setHasFetchedData(true); 
     }
   }, [fetcher.data])
 

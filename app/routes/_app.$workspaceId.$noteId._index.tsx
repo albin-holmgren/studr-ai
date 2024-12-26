@@ -164,11 +164,11 @@ export default function NotePage() {
             onContentChange={setContent}
           />
         </div>
-        <Suggestions
+        {/* <Suggestions
           noteId={note.id}
           content={note.content || ""}
           className="w-80 shrink-0"
-        />
+        /> */}
       </div>
     </div>
   )
