@@ -2,7 +2,6 @@ import * as React from "react"
 import { Bot, ChevronDown, Lightbulb, Sparkles, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useFetcher } from "@remix-run/react"
-
 import { Button } from "./ui/button"
 import { ScrollArea } from "./ui/scroll-area"
 import { cn } from "~/lib/utils"
@@ -55,46 +54,194 @@ function getLetterGrade(score: number): string {
 }
 
 export function Suggestions({ content, noteId, className }: SuggestionsProps) {
-  const [suggestions, setSuggestions] = React.useState<Suggestion[]>([])
-  const [loading, setLoading] = React.useState(false)
-  const [score, setScore] = React.useState(0)
-  const [openSuggestion, setOpenSuggestion] = React.useState<string | null>(null)
-  const letterGrade = getLetterGrade(score)
-  const gradeStyle = getLetterGradeStyle(letterGrade)
-  const fetcher = useFetcher()
-  const debouncedContent = useDebounce(content, 1000)
-  const [hasFetchedData, setHasFetchedData] = React.useState(false); // Add this state
+  const [suggestions, setSuggestions] = React.useState<Suggestion[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [score, setScore] = React.useState(0);
+  const [openSuggestion, setOpenSuggestion] = React.useState<string | null>(
+    null
+  );
+  const [openCorrection, setOpenCorrection] = React.useState<string | null>(
+    null
+  );
+  const [corrections, setCorrections] = React.useState<any[]>([]);
+  const letterGrade = getLetterGrade(score);
+  const gradeStyle = getLetterGradeStyle(letterGrade);
+  const fetcher = useFetcher();
+  const debouncedContent = useDebounce(content, 500);
+  const [hasFetchedData, setHasFetchedData] = React.useState(false);
 
   React.useEffect(() => {
-    console.log('suggestions', suggestions);
-  }, [suggestions]);
-  React.useEffect(() => {
     if (!debouncedContent.trim()) {
-      setSuggestions([])
-      setScore(0)
-      return
+      setSuggestions([]);
+      setScore(0);
+      setHasFetchedData(false);
+      setCorrections([]); 
+      setOpenSuggestion(null); 
+      setOpenCorrection(null);
     }
-    if (loading || hasFetchedData) return;
-    setLoading(true)
-    const formData = new FormData()
-    formData.append("noteId", noteId)
-    formData.append("content", debouncedContent)
+  }, [debouncedContent]);
+
+  React.useEffect(() => {
+    if (loading || hasFetchedData || !debouncedContent.trim()) return;
+
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("noteId", noteId);
+    formData.append("content", debouncedContent);
 
     fetcher.submit(formData, {
       method: "post",
-      action: "/api/note/suggestions"
-    })
-  }, [noteId, debouncedContent, fetcher, loading, hasFetchedData])
+      action: "/api/suggestion",
+    });
+  }, [debouncedContent, noteId, fetcher, loading, hasFetchedData]);
+
+  const removeHTMLTags = (str: string) => {
+    const doc = new DOMParser().parseFromString(str, "text/html");
+    return doc.body.textContent || "";
+  };
 
   React.useEffect(() => {
     if (fetcher.data && !fetcher.data.error) {
-      setSuggestions(fetcher.data.suggestions || [])
-      setScore(fetcher.data.score || 0)
-      setOpenSuggestion(fetcher.data.suggestions?.[0]?.id || null)
-      setLoading(false)
+      setSuggestions([
+        {
+          id: "1", 
+          type: "enhancement",
+          title: "Content Improvement Suggestion",
+          content: {
+            summary: fetcher.data.suggestion,
+            highlights: [
+              fetcher.data.suggestion.substring(0, 15),
+              fetcher.data.suggestion.substring(15, 30),
+            ],
+          },
+        },
+      ]);
+      setScore(fetcher.data.score || 0);
+      setCorrections(fetcher.data.corrections.alerts || []);
+      setOpenSuggestion("1"); 
+      setLoading(false);
       setHasFetchedData(true); 
     }
-  }, [fetcher.data])
+  }, [fetcher.data]);
+
+  const renderCorrections = (alerts) => {
+    return alerts.map((alert, index) => {
+      const transformations = alert.transforms || []; 
+      const mistakeText = alert.highlightText || "";
+
+      return (
+        <motion.div
+          key={alert.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 * (index + 2) }}
+        >
+          <Collapsible
+            open={openCorrection === alert.id}
+            onOpenChange={(open) => {
+              if (open) {
+                setOpenSuggestion(null);
+              }
+              setOpenCorrection(open ? alert.id : null);
+            }}
+          >
+            <div className="overflow-hidden rounded-lg bg-gradient-to-br from-muted/50 to-muted/30 shadow-sm transition-colors hover:from-muted/60 hover:to-muted/40">
+              <CollapsibleTrigger className="flex w-full items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="rounded-full bg-background/80 p-2 shadow-sm"
+                  >
+                    <Bot className="h-4 w-4 text-emerald-500" />
+                  </motion.div>
+                  <div className="space-y-1 text-left">
+                    <span className="block text-sm font-medium">
+                      {removeHTMLTags(alert.title || "")}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {alert.category || "Correction"}
+                    </span>
+                  </div>
+                </div>
+                <motion.div
+                  animate={{ rotate: openCorrection === alert.id ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="ml-4 shrink-0"
+                >
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </motion.div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <AnimatePresence>
+                  {openCorrection === alert.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="border-t border-border/50 bg-gradient-to-br from-background/50 to-background/80"
+                    >
+                      <div className="space-y-4 p-4">
+                        <p className="text-sm text-muted-foreground">
+                          {removeHTMLTags(alert.explanation || "")}
+                        </p>
+                        <div className="space-y-2.5">
+                          {transformations.length > 0 ? (
+                            transformations.map((transformation, i) => (
+                              <div key={i} className="text-sm">
+                                <span>{removeHTMLTags(transformation)}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-sm">
+                              No corrections available
+                            </div>
+                          )}
+                        </div>
+                        <motion.div
+                          className="flex gap-2 pt-2"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                        >
+                          <Button
+                            size="sm"
+                            className="relative w-full overflow-hidden bg-primary/10 text-primary hover:bg-primary/20"
+                          >
+                            <motion.div
+                              className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0"
+                              animate={{
+                                x: ["0%", "200%"],
+                              }}
+                              transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "linear",
+                              }}
+                            />
+                            <span className="relative">Accept Suggestion</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="w-8 p-0 text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
+        </motion.div>
+      );
+    });
+  };
 
   if (loading || fetcher.state === "submitting") {
     return (
@@ -164,7 +311,6 @@ export function Suggestions({ content, noteId, className }: SuggestionsProps) {
           </div>
         </motion.div>
 
-        {/* Suggestions List or Empty State */}
         {suggestions.length > 0 ? (
           <div className="space-y-3">
             {suggestions.map((suggestion, index) => (
@@ -176,7 +322,12 @@ export function Suggestions({ content, noteId, className }: SuggestionsProps) {
               >
                 <Collapsible
                   open={openSuggestion === suggestion.id}
-                  onOpenChange={(open) => setOpenSuggestion(open ? suggestion.id : null)}
+                  onOpenChange={(open) => {
+                    if (open) {
+                      setOpenCorrection(null);
+                    }
+                    setOpenSuggestion(open ? suggestion.id : null);
+                  }}
                 >
                   <div className="overflow-hidden rounded-lg bg-gradient-to-br from-muted/50 to-muted/30 shadow-sm transition-colors hover:from-muted/60 hover:to-muted/40">
                     <CollapsibleTrigger className="flex w-full items-center justify-between p-4">
@@ -186,27 +337,22 @@ export function Suggestions({ content, noteId, className }: SuggestionsProps) {
                           whileTap={{ scale: 0.95 }}
                           className="rounded-full bg-background/80 p-2 shadow-sm"
                         >
-                          {suggestion.type === "improvement" && (
-                            <Sparkles className="h-4 w-4 text-blue-500" />
-                          )}
-                          {suggestion.type === "insight" && (
-                            <Lightbulb className="h-4 w-4 text-amber-500" />
-                          )}
-                          {suggestion.type === "enhancement" && (
-                            <Bot className="h-4 w-4 text-emerald-500" />
-                          )}
+                          <Sparkles className="h-4 w-4 text-blue-500" />
                         </motion.div>
                         <div className="space-y-1 text-left">
                           <span className="block text-sm font-medium">
                             {suggestion.title}
                           </span>
                           <span className="block text-xs text-muted-foreground">
-                            {suggestion.type.charAt(0).toUpperCase() + suggestion.type.slice(1)}
+                            {suggestion.type.charAt(0).toUpperCase() +
+                              suggestion.type.slice(1)}
                           </span>
                         </div>
                       </div>
                       <motion.div
-                        animate={{ rotate: openSuggestion === suggestion.id ? 180 : 0 }}
+                        animate={{
+                          rotate: openSuggestion === suggestion.id ? 180 : 0,
+                        }}
                         transition={{ duration: 0.2 }}
                         className="ml-4 shrink-0"
                       >
@@ -228,26 +374,28 @@ export function Suggestions({ content, noteId, className }: SuggestionsProps) {
                                 {suggestion.content.summary}
                               </p>
                               <div className="space-y-2.5">
-                                {suggestion.content.highlights.map((highlight, i) => (
-                                  <div
-                                    key={i}
-                                    className="flex items-center gap-2 text-sm"
-                                  >
-                                    <div className="h-1.5 w-1.5 rounded-full bg-primary/50" />
-                                    <span className="font-medium text-primary">
-                                      {highlight}
-                                    </span>
-                                  </div>
-                                ))}
+                                {suggestion.content.highlights.map(
+                                  (highlight, i) => (
+                                    <div
+                                      key={i}
+                                      className="flex items-center gap-2 text-sm"
+                                    >
+                                      <div className="h-1.5 w-1.5 rounded-full bg-primary/50" />
+                                      <span className="font-medium text-primary">
+                                        {highlight}
+                                      </span>
+                                    </div>
+                                  )
+                                )}
                               </div>
-                              <motion.div 
+                              <motion.div
                                 className="flex gap-2 pt-2"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.1 }}
                               >
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   className="relative w-full overflow-hidden bg-primary/10 text-primary hover:bg-primary/20"
                                 >
                                   <motion.div
@@ -261,11 +409,13 @@ export function Suggestions({ content, noteId, className }: SuggestionsProps) {
                                       ease: "linear",
                                     }}
                                   />
-                                  <span className="relative">Accept Suggestion</span>
+                                  <span className="relative">
+                                    Accept Suggestion
+                                  </span>
                                 </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
                                   className="w-8 p-0 text-muted-foreground hover:text-foreground"
                                 >
                                   <X className="h-4 w-4" />
@@ -286,11 +436,17 @@ export function Suggestions({ content, noteId, className }: SuggestionsProps) {
             <Bot className="h-8 w-8" />
             <div>
               <p className="font-medium">No suggestions yet</p>
-              <p className="text-xs">Start writing to get AI-powered suggestions</p>
+              <p className="text-xs">
+                Start writing to get AI-powered suggestions
+              </p>
             </div>
           </div>
         )}
+
+        {corrections.length > 0 && (
+          <div className="space-y-6">{renderCorrections(corrections)}</div>
+        )}
       </div>
     </ScrollArea>
-  )
+  );
 }
