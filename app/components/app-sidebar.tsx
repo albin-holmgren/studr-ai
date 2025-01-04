@@ -392,7 +392,7 @@ export function AppSidebar({
           <div className="flex-1">
             <NavFavorites favorites={data.favorites} />
             <NavWorkspace workspaces={workspaces} />
-            <NavLibrary libraries={user.libraries} />
+            {/* <NavLibrary libraries={user.libraries} /> */}
             <NavSecondary 
               items={data.navSecondary.map(item => ({
                 ...item,
